@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>校园兴趣社区分享平台 - 登录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 现代磨砂与渐变背景 */
+        body {
+            background-color: #f3f4f6;
+            background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        /* 卡片精细化阴影与圆角 */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 40px -15px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.2) inset;
+        }
+        /* 现代输入框交互 */
+        .input-modern {
+            width: 100%;
+            padding: 0.875rem 1.25rem;
+            border-radius: 1rem;
+            border: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+        .input-modern:focus {
+            background-color: #ffffff;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+        /* 角色选择器优化 */
+        select.input-modern {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 1rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+        }
+        .hidden-form { display: none; }
+    </style>
+</head>
+<body class="p-6">
+<div class="glass-card w-full max-w-[400px] p-10 relative">
+    <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 mb-4 shadow-lg">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-800 tracking-tight">兴趣社群平台</h2>
+        <p class="text-sm text-gray-500 mt-2 font-medium" id="formSubtitle">欢迎回来，请登录您的账号</p>
+    </div>
+
+    <div id="loginForm" class="space-y-5">
+        <div>
+            <select id="loginRole" class="input-modern text-gray-700 font-medium">
+                <option value="3">👨‍🎓 学生用户</option>
+                <option value="2">👑 社群管理员</option>
+                <option value="1">🛡️ 平台超级管理</option>
+            </select>
+        </div>
+        <div>
+            <input type="text" id="loginUsername" class="input-modern" placeholder="账号 / 学号">
+        </div>
+        <div>
+            <input type="password" id="loginPassword" class="input-modern" placeholder="登录密码">
+        </div>
+        <button onclick="doLogin()" class="w-full py-3.5 px-4 rounded-xl shadow-md text-sm font-semibold text-white bg-gray-900 hover:bg-gray-800 hover:-translate-y-0.5 transition-all duration-200">
+            登 录
+        </button>
+        <div class="text-center mt-6">
+            <a href="javascript:void(0)" onclick="toggleForm()" class="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors">注册学生账号 →</a>
+        </div>
+    </div>
+
+    <div id="registerForm" class="hidden-form space-y-5">
+        <div>
+            <input type="text" id="regStudentNo" class="input-modern" placeholder="真实学号 (必填)">
+        </div>
+        <div>
+            <input type="text" id="regNickname" class="input-modern" placeholder="社区昵称 (必填)">
+        </div>
+        <div>
+            <input type="password" id="regPassword" class="input-modern" placeholder="设置密码">
+        </div>
+        <button onclick="doRegister()" class="w-full py-3.5 px-4 rounded-xl shadow-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all duration-200">
+            创建账号
+        </button>
+        <div class="text-center mt-6">
+            <a href="javascript:void(0)" onclick="toggleForm()" class="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">← 返回登录</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleForm() {
+        const login = document.getElementById('loginForm');
+        const register = document.getElementById('registerForm');
+        const subtitle = document.getElementById('formSubtitle');
+        if (login.style.display === 'none') {
+            login.style.display = 'block';
+            register.style.display = 'none';
+            subtitle.innerText = '欢迎回来，请登录您的账号';
+        } else {
+            login.style.display = 'none';
+            register.style.display = 'block';
+            subtitle.innerText = '填写信息以加入校园社区';
+        }
+    }
+
+    function doLogin() {
+        const formData = new URLSearchParams();
+        formData.append('role', document.getElementById('loginRole').value);
+        formData.append('username', document.getElementById('loginUsername').value);
+        formData.append('password', document.getElementById('loginPassword').value);
+
+        fetch('/api/login', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200) window.location.href = res.data;
+                else alert(res.msg);
+            });
+    }
+
+    function doRegister() {
+        const formData = new URLSearchParams();
+        formData.append('studentNo', document.getElementById('regStudentNo').value);
+        formData.append('nickname', document.getElementById('regNickname').value);
+        formData.append('password', document.getElementById('regPassword').value);
+
+        fetch('/api/register', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200) {
+                    alert("注册成功，请登录！");
+                    toggleForm();
+                } else alert(res.msg);
+            });
+    }
+</script>
+</body>
+</html>

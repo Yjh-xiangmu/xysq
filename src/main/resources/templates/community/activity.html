@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>活动管理 - 社群运营中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans flex h-screen overflow-hidden">
+<div class="bg-blue-800 shadow-xl w-64 flex flex-col z-20">
+    <div class="text-white text-xl font-bold p-5 flex items-center border-b border-blue-700">
+        <span class="mr-2">🎯</span> 社群运营中心
+    </div>
+    <ul class="flex flex-col py-4 flex-1 text-blue-100 font-medium space-y-1">
+        <a href="#" class="px-6 py-3 hover:bg-blue-700 hover:text-white cursor-pointer border-l-4 border-transparent block">社群信息管理</a>
+        <a href="/community/member" class="px-6 py-3 hover:bg-blue-700 hover:text-white cursor-pointer border-l-4 border-transparent block">成员管理</a>
+        <a href="#" class="px-6 py-3 hover:bg-blue-700 hover:text-white cursor-pointer border-l-4 border-transparent block">帖子管理</a>
+        <a href="/community/activity" class="px-6 py-3 bg-blue-700 text-white border-l-4 border-yellow-400 block">活动内容与评论管理</a>
+        <a href="#" class="px-6 py-3 hover:bg-blue-700 hover:text-white cursor-pointer border-l-4 border-transparent block">个人信息管理</a>
+    </ul>
+    <div class="p-4 border-t border-blue-700">
+        <a href="/" class="block w-full text-center bg-blue-700 hover:bg-red-500 hover:text-white py-2.5 rounded-lg transition-colors text-sm font-medium">退出登录</a>
+    </div>
+</div>
+
+<div class="flex-1 flex flex-col overflow-hidden relative">
+    <header class="bg-white shadow-sm p-5 flex justify-between items-center z-10 border-b border-gray-100">
+        <h2 class="text-lg font-bold text-gray-800">活动内容与评论管理</h2>
+        <div class="flex items-center space-x-3">
+            <span class="text-sm font-medium text-gray-600">社长</span>
+            <div class="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">社</div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto bg-gray-50 p-8">
+        <div class="max-w-2xl bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden p-8">
+            <h3 class="text-xl font-semibold text-gray-800 mb-6 border-b pb-4">活动策划与发布</h3>
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">活动标题</label>
+                    <input type="text" id="actTitle" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500" placeholder="例如：周末吉他指弹教学分享会">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">活动时间</label>
+                        <input type="datetime-local" id="actTime" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">活动地点</label>
+                        <input type="text" id="actLocation" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500" placeholder="例如：操场主席台 / 综合楼402">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">活动详情要求</label>
+                    <textarea id="actContent" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:border-blue-500" placeholder="请描述活动的具体内容和报名要求..."></textarea>
+                </div>
+                <button onclick="submitActivity()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors shadow">
+                    确 认 发 布
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    function submitActivity() {
+        const title = document.getElementById('actTitle').value.trim();
+        const time = document.getElementById('actTime').value;
+        const location = document.getElementById('actLocation').value.trim();
+        const content = document.getElementById('actContent').value.trim();
+
+        if (!title || !time || !location || !content) return alert("请把表格填写完整");
+
+        const formData = new URLSearchParams();
+        formData.append('title', title);
+        formData.append('eventTime', time);
+        formData.append('location', location);
+        formData.append('content', content);
+
+        fetch('/api/community/activity/publish', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200) {
+                    alert("✅ " + res.data);
+                    document.getElementById('actTitle').value = '';
+                    document.getElementById('actTime').value = '';
+                    document.getElementById('actLocation').value = '';
+                    document.getElementById('actContent').value = '';
+                } else alert("❌ " + res.msg);
+            });
+    }
+</script>
+</body>
+</html>

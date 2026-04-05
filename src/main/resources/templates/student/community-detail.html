@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>社群动态 - 兴趣Share</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans pt-16">
+<nav class="bg-white shadow-sm fixed w-full z-20 top-0 border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center space-x-4">
+                <a href="/student/index" class="text-gray-500 hover:text-indigo-600 font-medium transition-colors">← 返回广场</a>
+                <span class="text-xl font-bold border-l-2 pl-4 border-gray-300 text-gray-800">社群互动区</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-6xl mx-auto px-4 py-8 flex flex-col md:flex-row gap-6">
+    <input type="hidden" id="currentCommunityId" th:value="${communityId}">
+
+    <div class="flex-1 min-w-0">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+            <textarea id="postContent" rows="3" class="w-full border border-gray-300 rounded-lg p-4 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-colors" placeholder="有什么新鲜事想和大家分享？"></textarea>
+            <div class="flex justify-end mt-4">
+                <button onclick="publishPost()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-8 rounded-lg transition-colors shadow-sm">发 布</button>
+            </div>
+        </div>
+
+        <div class="space-y-6" id="post-list-container">
+            <div class="text-center text-gray-400 py-10">正在加载动态...</div>
+        </div>
+    </div>
+
+    <aside class="w-full md:w-80 flex-shrink-0">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-20">
+            <div class="bg-indigo-50 px-5 py-4 border-b border-indigo-100 flex justify-between items-center">
+                <h3 class="font-bold text-indigo-900 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    近期活动
+                </h3>
+            </div>
+            <div class="p-5 space-y-4" id="activity-list-container">
+                <div class="text-center text-sm text-gray-400">正在加载活动...</div>
+            </div>
+        </div>
+    </aside>
+</main>
+
+<script>
+    const communityId = document.getElementById('currentCommunityId').value;
+    let replyTargets = {};
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadPosts();
+        loadActivities();
+    });
+
+    function publishPost() {
+        const content = document.getElementById('postContent').value.trim();
+        if (!content) return alert('写点什么再发布吧！');
+
+        const formData = new URLSearchParams();
+        formData.append('communityId', communityId);
+        formData.append('content', content);
+
+        fetch('/api/student/post/publish', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200) {
+                    document.getElementById('postContent').value = '';
+                    loadPosts();
+                } else alert("❌ " + res.msg);
+            });
+    }
+
+    function loadPosts() {
+        fetch(`/api/student/post/list?communityId=${communityId}`)
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200) renderPosts(res.data);
+            });
+    }
+
+    function renderPosts(posts) {
+        const container = document.getElementById('post-list-container');
+        if (!posts || posts.length === 0) {
+            container.innerHTML = '<div class="text-center text-gray-400 bg-white rounded-xl p-10 border border-gray-200">社群里还没有动态，快来抢个沙发吧！</div>';
+            return;
+        }
+
+        let html = '';
+        posts.forEach(post => {
+            const postTime = formatTime(post.createTime);
+            let commentsHtml = '';
+            if (post.comments && post.comments.length > 0) {
+                commentsHtml = `<div class="bg-gray-50 rounded-lg p-4 mt-4 space-y-4 border border-gray-100">`;
+                post.comments.forEach(rootComment => {
+                    commentsHtml += `
+                            <div class="text-sm">
+                                <div class="group cursor-pointer" onclick="prepareReply(${post.id}, ${rootComment.id}, ${rootComment.studentId}, '${rootComment.authorName}')">
+                                    <span class="font-bold text-gray-800 hover:text-indigo-600 transition-colors">${rootComment.authorName}: </span>
+                                    <span class="text-gray-700">${rootComment.content}</span>
+                                    <span class="text-xs text-gray-400 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">回复</span>
+                                </div>
+                        `;
+                    if (rootComment.replies && rootComment.replies.length > 0) {
+                        commentsHtml += `<div class="ml-6 mt-2 space-y-2 border-l-2 border-gray-200 pl-3">`;
+                        rootComment.replies.forEach(reply => {
+                            commentsHtml += `
+                                    <div class="group cursor-pointer" onclick="prepareReply(${post.id}, ${rootComment.id}, ${reply.studentId}, '${reply.authorName}')">
+                                        <span class="font-bold text-gray-800 hover:text-indigo-600 transition-colors">${reply.authorName}</span>
+                                        <span class="text-gray-400 text-xs mx-1">回复</span>
+                                        <span class="font-bold text-gray-800">${reply.replyToName}: </span>
+                                        <span class="text-gray-700">${reply.content}</span>
+                                        <span class="text-xs text-gray-400 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">回复</span>
+                                    </div>
+                                `;
+                        });
+                        commentsHtml += `</div>`;
+                    }
+                    commentsHtml += `</div>`;
+                });
+                commentsHtml += `</div>`;
+            }
+
+            html += `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center text-white font-bold shadow-sm">
+                            ${post.authorName.charAt(0)}
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-sm">${post.authorName}</h4>
+                            <p class="text-xs text-gray-400">${postTime}</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-800 leading-relaxed whitespace-pre-wrap mb-4 text-[15px]">${post.content}</p>
+
+                    <div class="flex items-center text-gray-500 text-sm border-t border-gray-100 pt-3">
+                        <button onclick="toggleCommentBox(${post.id})" class="flex items-center hover:text-indigo-600 transition-colors">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>评论
+                        </button>
+                    </div>
+
+                    ${commentsHtml}
+
+                    <div id="comment-box-${post.id}" class="hidden mt-4 bg-white border border-indigo-100 p-1 rounded-lg flex items-center space-x-2 shadow-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition-all">
+                        <span id="reply-badge-${post.id}" class="hidden bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-xs font-medium whitespace-nowrap ml-1 cursor-pointer" onclick="resetReply(${post.id})"></span>
+                        <input type="text" id="comment-input-${post.id}" class="flex-1 border-none py-2 px-2 focus:ring-0 text-sm" placeholder="写下你的评论...">
+                        <button onclick="submitComment(${post.id})" class="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">发送</button>
+                    </div>
+                </div>
+                `;
+        });
+        container.innerHTML = html;
+    }
+
+    function formatTime(timeStr) {
+        const date = new Date(timeStr);
+        return `${date.getMonth() + 1}-${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+    }
+
+    function toggleCommentBox(postId) {
+        const box = document.getElementById(`comment-box-${postId}`);
+        box.classList.toggle('hidden');
+        if (!box.classList.contains('hidden')) {
+            resetReply(postId);
+            document.getElementById(`comment-input-${postId}`).focus();
+        }
+    }
+
+    function prepareReply(postId, parentId, targetStudentId, targetName) {
+        replyTargets[postId] = { parentId: parentId, replyToStudentId: targetStudentId };
+        const box = document.getElementById(`comment-box-${postId}`);
+        box.classList.remove('hidden');
+        const badge = document.getElementById(`reply-badge-${postId}`);
+        badge.innerText = `回复 @${targetName} ×`;
+        badge.classList.remove('hidden');
+        document.getElementById(`comment-input-${postId}`).focus();
+    }
+
+    function resetReply(postId) {
+        delete replyTargets[postId];
+        document.getElementById(`reply-badge-${postId}`).classList.add('hidden');
+        document.getElementById(`comment-input-${postId}`).placeholder = "写下你的评论...";
+    }
+
+    function submitComment(postId) {
+        const content = document.getElementById(`comment-input-${postId}`).value.trim();
+        if (!content) return alert('评论内容不能为空');
+
+        const formData = new URLSearchParams();
+        formData.append('postId', postId);
+        formData.append('content', content);
+        if (replyTargets[postId]) {
+            formData.append('parentId', replyTargets[postId].parentId);
+            formData.append('replyToStudentId', replyTargets[postId].replyToStudentId);
+        } else {
+            formData.append('parentId', 0);
+        }
+
+        fetch('/api/student/post/comment', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200) {
+                    resetReply(postId);
+                    loadPosts();
+                } else alert("❌ " + res.msg);
+            });
+    }
+
+    function loadActivities() {
+        fetch(`/api/student/activity/list?communityId=${communityId}`)
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200) renderActivities(res.data);
+            });
+    }
+
+    function renderActivities(activities) {
+        const container = document.getElementById('activity-list-container');
+        if (!activities || activities.length === 0) {
+            container.innerHTML = '<div class="text-center text-sm text-gray-400 py-4">暂无活动发布</div>';
+            return;
+        }
+
+        let html = '';
+        activities.forEach(act => {
+            const eventTime = formatTime(act.eventTime);
+            let btnHtml = act.isSigned
+                ? `<button disabled class="w-full bg-gray-100 text-gray-500 py-2 rounded-md text-sm font-medium cursor-not-allowed">已报名</button>`
+                : `<button onclick="signActivity(${act.id})" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-md text-sm font-medium transition-colors shadow-sm">立即报名</button>`;
+
+            html += `
+                <div class="border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50">
+                    <h4 class="font-bold text-gray-800 text-[15px] mb-2">${act.title}</h4>
+                    <p class="text-xs text-gray-500 mb-1">🕒 ${eventTime}</p>
+                    <p class="text-xs text-gray-500 mb-3">📍 ${act.location}</p>
+                    <p class="text-sm text-gray-700 mb-3 line-clamp-2">${act.content}</p>
+                    <div class="flex justify-between items-center mb-3 text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded inline-block">已报名: ${act.signCount} 人</div>
+                    ${btnHtml}
+                </div>
+                `;
+        });
+        container.innerHTML = html;
+    }
+
+    function signActivity(activityId) {
+        const formData = new URLSearchParams();
+        formData.append('activityId', activityId);
+        fetch('/api/student/activity/sign', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200) {
+                    alert('报名成功！');
+                    loadActivities();
+                } else alert(res.msg);
+            });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>兴趣Share - 发现社群</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans pt-16">
+<nav class="bg-white shadow-sm fixed w-full z-20 top-0 border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex space-x-8">
+                <div class="flex-shrink-0 flex items-center">
+                    <span class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 tracking-tighter">兴趣Share</span>
+                </div>
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="#" class="text-indigo-600 font-semibold border-b-2 border-indigo-600 px-1 py-2">社群广场</a>
+                    <a href="#" class="text-gray-500 hover:text-indigo-600 font-medium transition px-1 py-2">参与社群活动</a>
+                </div>
+            </div>
+            <div class="flex items-center space-x-5 relative">
+                <div class="group relative cursor-pointer flex items-center space-x-2">
+                    <div class="h-9 w-9 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 shadow-sm border-2 border-white"></div>
+                    <div class="hidden group-hover:block absolute right-0 top-full mt-1 w-40 bg-white rounded-xl shadow-lg py-2 border border-gray-100">
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">个人信息管理</a>
+                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">帖子管理</a>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <a href="/" class="block px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium">退出登录</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 py-8 mt-4">
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4 mt-8">探索你的校园热爱</h1>
+        <p class="text-gray-500">发现有趣的灵魂，加入志同道合的圈子</p>
+    </div>
+
+    <div id="community-plaza" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        <div class="col-span-full text-center text-gray-400 py-10">
+            正在加载社群数据...
+        </div>
+    </div>
+</main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', loadCommunities);
+
+    function loadCommunities() {
+        fetch('/api/student/community/list')
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200) {
+                    renderCommunityCards(res.data);
+                } else alert(res.msg);
+            });
+    }
+
+    function renderCommunityCards(communities) {
+        const container = document.getElementById('community-plaza');
+        if (!communities || communities.length === 0) {
+            container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-10">暂无社群数据，等待平台创建</div>';
+            return;
+        }
+
+        let html = '';
+        communities.forEach(item => {
+            // 核心逻辑：根据后端传来的状态动态生成按钮
+            let buttonHtml = '';
+            if (item.joinStatus === 1) {
+                // 已加入，生成跳转按钮
+                buttonHtml = `<button onclick="window.location.href='/student/community/${item.id}'" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition-colors text-sm shadow-sm flex justify-center items-center">进入社群 <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></button>`;
+            } else if (item.joinStatus === 0) {
+                // 审核中
+                buttonHtml = `<button disabled class="w-full bg-yellow-50 border border-yellow-200 text-yellow-600 font-medium py-2 rounded-lg text-sm cursor-not-allowed">审核中...</button>`;
+            } else if (item.joinStatus === 2) {
+                // 已拒绝
+                buttonHtml = `<button disabled class="w-full bg-red-50 border border-red-200 text-red-500 font-medium py-2 rounded-lg text-sm cursor-not-allowed">申请被拒</button>`;
+            } else {
+                // 未申请 (-1)
+                buttonHtml = `<button onclick="applyJoin(${item.id})" class="w-full bg-gray-50 border border-gray-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 text-gray-700 font-medium py-2 rounded-lg transition-colors text-sm">申请加入</button>`;
+            }
+
+            html += `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                    <div class="h-24 bg-gradient-to-r from-indigo-100 to-purple-100 relative">
+                        <div class="absolute -bottom-8 left-6 h-16 w-16 bg-white rounded-2xl p-1 shadow-md">
+                            <img class="h-full w-full rounded-xl object-cover bg-gray-50" src="${item.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=default'}" alt="头像">
+                        </div>
+                    </div>
+                    <div class="pt-10 px-6 pb-6">
+                        <h3 class="text-lg font-bold text-gray-800 mb-2 truncate">${item.name}</h3>
+                        <p class="text-gray-500 text-sm mb-6 h-10 overflow-hidden line-clamp-2" title="${item.description}">${item.description}</p>
+                        ${buttonHtml}
+                    </div>
+                </div>
+                `;
+        });
+        container.innerHTML = html;
+    }
+
+    function applyJoin(communityId) {
+        const formData = new URLSearchParams();
+        formData.append('communityId', communityId);
+
+        fetch('/api/student/community/join', { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(res => {
+                if (res.code === 200) {
+                    alert("✅ 申请已提交！");
+                    loadCommunities(); // 重新加载卡片状态（按钮会变成“审核中”）
+                } else alert("❌ " + res.msg);
+            });
+    }
+</script>
+</body>
+</html>
