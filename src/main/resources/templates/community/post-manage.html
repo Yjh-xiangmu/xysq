@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>帖子管理 - 社群运营中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans flex h-screen overflow-hidden">
+
+<!-- 侧边栏 -->
+<div class="bg-blue-800 shadow-xl w-64 flex flex-col z-20">
+    <div class="text-white text-xl font-bold p-5 flex items-center border-b border-blue-700">
+        <span class="mr-2">🎯</span> 社群运营中心
+    </div>
+    <ul class="flex flex-col py-4 flex-1 text-blue-100 font-medium space-y-1">
+        <a href="/community/info" class="px-6 py-3 hover:bg-blue-700 hover:text-white border-l-4 border-transparent block">社群信息管理</a>
+        <a href="/community/member" class="px-6 py-3 hover:bg-blue-700 hover:text-white border-l-4 border-transparent block">成员管理</a>
+        <a href="/community/post" class="px-6 py-3 bg-blue-700 text-white border-l-4 border-yellow-400 block">帖子管理</a>
+        <a href="/community/activity" class="px-6 py-3 hover:bg-blue-700 hover:text-white border-l-4 border-transparent block">活动内容与评论管理</a>
+        <a href="/community/profile" class="px-6 py-3 hover:bg-blue-700 hover:text-white border-l-4 border-transparent block">个人信息管理</a>
+    </ul>
+    <div class="p-4 border-t border-blue-700">
+        <a href="/" class="block w-full text-center bg-blue-700 hover:bg-red-500 hover:text-white py-2.5 rounded-lg transition-colors text-sm font-medium">退出登录</a>
+    </div>
+</div>
+
+<!-- 主内容 -->
+<div class="flex-1 flex flex-col overflow-hidden">
+    <header class="bg-white shadow-sm p-5 flex justify-between items-center border-b border-gray-100">
+        <h2 class="text-lg font-bold text-gray-800">帖子管理</h2>
+        <div class="flex items-center space-x-3">
+            <span class="text-sm font-medium text-gray-600">社长</span>
+            <div class="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">社</div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto bg-gray-50 p-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800">社群帖子列表</h3>
+                <span class="text-xs text-gray-400">可隐藏违规内容或删除帖子</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">发布者</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">内容</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">状态</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">评论数</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-36">发布时间</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase w-36">操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="post-list-body" class="bg-white divide-y divide-gray-200">
+                    <tr><td colspan="7" class="px-6 py-10 text-center text-sm text-gray-400">正在加载数据...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', loadPosts);
+
+    function loadPosts() {
+        fetch('/api/community/post/list')
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) renderTable(res.data);
+                else document.getElementById('post-list-body').innerHTML =
+                    `<tr><td colspan="7" class="text-center text-red-500 py-10">${res.msg}</td></tr>`;
+            });
+    }
+
+    function renderTable(list) {
+        const tbody = document.getElementById('post-list-body');
+        if (!list || list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-sm text-gray-400">暂无帖子</td></tr>';
+            return;
+        }
+        tbody.innerHTML = list.map(p => {
+            const statusBadge = p.status === 1
+                ? `<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">正常</span>`
+                : `<span class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-medium">已隐藏</span>`;
+            const toggleLabel = p.status === 1 ? '隐藏' : '恢复';
+            const toggleClass = p.status === 1
+                ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100'
+                : 'text-green-600 bg-green-50 hover:bg-green-100';
+            const d = new Date(p.createTime);
+            const timeStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            const preview = escapeHtml(p.content.length > 40 ? p.content.substring(0, 40) + '...' : p.content);
+            return `
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 text-sm text-gray-400">#${p.id}</td>
+                <td class="px-6 py-4 text-sm font-medium text-gray-800">${escapeHtml(p.authorName)}</td>
+                <td class="px-6 py-4 text-sm text-gray-600 max-w-xs">${preview}</td>
+                <td class="px-6 py-4">${statusBadge}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${p.commentCount} 条</td>
+                <td class="px-6 py-4 text-sm text-gray-400 whitespace-nowrap">${timeStr}</td>
+                <td class="px-6 py-4 text-right space-x-2">
+                    <button onclick="toggleStatus(${p.id})" class="px-3 py-1 rounded text-xs font-medium transition-colors ${toggleClass}">${toggleLabel}</button>
+                    <button onclick="deletePost(${p.id})" class="px-3 py-1 rounded text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors">删除</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function toggleStatus(postId) {
+        if (!confirm('确定要切换该帖子的显示状态吗？')) return;
+        const fd = new URLSearchParams();
+        fd.append('postId', postId);
+        fetch('/api/community/post/toggleStatus', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) loadPosts();
+                else alert('❌ ' + res.msg);
+            });
+    }
+
+    function deletePost(postId) {
+        if (!confirm('删除后不可恢复，确定删除该帖子及所有评论吗？')) return;
+        const fd = new URLSearchParams();
+        fd.append('postId', postId);
+        fetch('/api/community/post/delete', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) loadPosts();
+                else alert('❌ ' + res.msg);
+            });
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+</script>
+</body>
+</html>

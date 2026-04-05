@@ -10,4 +10,5 @@ public class SysStudent {
     private String studentNo;
     private String password;
     private String nickname;
+    private Integer status; // 1正常 0禁用，默认1
 }

@@ -4,38 +4,729 @@
     <meta charset="UTF-8">
     <title>平台管理中枢 - 校园兴趣社区</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-<body class="bg-gray-100 font-sans leading-normal tracking-normal flex h-screen overflow-hidden">
-<div class="bg-gray-900 shadow-xl w-64 flex flex-col transition-all">
+<body class="bg-gray-100 font-sans leading-normal flex h-screen overflow-hidden">
+
+<!-- 侧边栏 -->
+<div class="bg-gray-900 shadow-xl w-64 flex flex-col flex-shrink-0">
     <div class="text-white text-xl font-bold p-5 flex items-center border-b border-gray-800">
         <span class="mr-2">⚙️</span> 平台控制台
     </div>
     <ul class="flex flex-col py-4 flex-1 text-gray-300 font-medium space-y-1">
-        <li class="px-6 py-3 hover:bg-gray-800 hover:text-white cursor-pointer bg-gray-800 border-l-4 border-indigo-500 text-white">数据统计与可视化分析</li>
-        <li class="px-6 py-3 hover:bg-gray-800 hover:text-white cursor-pointer border-l-4 border-transparent">用户信息管理</li>
-        <li class="px-6 py-3 hover:bg-gray-800 hover:text-white cursor-pointer border-l-4 border-transparent">内容审核与监管</li>
-        <li class="px-6 py-3 hover:bg-gray-800 hover:text-white cursor-pointer border-l-4 border-transparent">社群分类管理</li>
-        <li class="px-6 py-3 hover:bg-gray-800 hover:text-white cursor-pointer border-l-4 border-transparent">发布全站公告</li>
-        <li class="px-6 py-3 hover:bg-gray-800 hover:text-white cursor-pointer border-l-4 border-transparent">首页社群推荐</li>
+        <li onclick="showPanel('stats')"    id="nav-stats"    class="px-6 py-3 cursor-pointer bg-gray-800 border-l-4 border-indigo-500 text-white transition-colors">数据统计与分析</li>
+        <li onclick="showPanel('users')"    id="nav-users"    class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">用户信息管理</li>
+        <li onclick="showPanel('content')"  id="nav-content"  class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">内容审核与监管</li>
+        <li onclick="showPanel('category')" id="nav-category" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">社群分类管理</li>
+        <li onclick="showPanel('announce')" id="nav-announce" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">发布全站公告</li>
+        <li onclick="showPanel('recommend')" id="nav-recommend" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">首页社群推荐</li>
     </ul>
     <div class="p-4 border-t border-gray-800">
         <a href="/" class="block w-full text-center bg-gray-800 hover:bg-red-500 text-gray-300 hover:text-white py-2.5 rounded-lg transition-colors text-sm">退出登录</a>
     </div>
 </div>
 
+<!-- 主内容 -->
 <div class="flex-1 flex flex-col overflow-hidden">
-    <header class="bg-white shadow-sm p-5 flex justify-between items-center z-10">
-        <h2 class="text-lg font-bold text-gray-800">数据统计与可视化分析</h2>
+    <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 border-b border-gray-100">
+        <h2 id="panel-title" class="text-lg font-bold text-gray-800">数据统计与分析</h2>
         <div class="flex items-center space-x-3">
-            <span class="text-sm font-medium text-gray-600">Admin</span>
+            <span class="text-sm font-medium text-gray-600">平台管理员</span>
             <div class="h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">A</div>
         </div>
     </header>
+
     <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-400">
-            内容区域将根据左侧导航动态加载
+
+        <!-- ===== 数据统计面板 ===== -->
+        <div id="panel-stats">
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+                    <div class="text-3xl font-bold text-indigo-600" id="stat-students">-</div>
+                    <div class="text-sm text-gray-500 mt-1">注册学生</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+                    <div class="text-3xl font-bold text-green-600" id="stat-communities">-</div>
+                    <div class="text-sm text-gray-500 mt-1">社群总数</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+                    <div class="text-3xl font-bold text-blue-600" id="stat-posts">-</div>
+                    <div class="text-sm text-gray-500 mt-1">发帖总数</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+                    <div class="text-3xl font-bold text-purple-600" id="stat-activities">-</div>
+                    <div class="text-sm text-gray-500 mt-1">活动总数</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+                    <div class="text-3xl font-bold text-orange-500" id="stat-comments">-</div>
+                    <div class="text-sm text-gray-500 mt-1">评论总数</div>
+                </div>
+            </div>
+
+            <!-- 图表区 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="text-base font-semibold text-gray-700 mb-4">各社群帖子数量</h3>
+                    <canvas id="chartPosts" height="200"></canvas>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="text-base font-semibold text-gray-700 mb-4">各社群成员人数</h3>
+                    <canvas id="chartMembers" height="200"></canvas>
+                </div>
+            </div>
         </div>
+
+        <!-- ===== 用户管理面板 ===== -->
+        <div id="panel-users" class="hidden space-y-5">
+            <!-- 子标签 -->
+            <div class="flex space-x-2 border-b border-gray-200">
+                <button onclick="switchUserTab('students')" id="utab-students"
+                    class="px-5 py-2.5 text-sm font-medium border-b-2 border-indigo-600 text-indigo-600 -mb-px transition-colors">学生账号</button>
+                <button onclick="switchUserTab('leaders')" id="utab-leaders"
+                    class="px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px transition-colors">社长管理</button>
+            </div>
+
+            <!-- 学生账号子面板 -->
+            <div id="upanel-students">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                        <h3 class="text-base font-semibold text-gray-800">学生账号列表</h3>
+                        <input type="text" id="userSearch" oninput="filterUsers()" placeholder="搜索学号或昵称..."
+                            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-400 w-52">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">学号</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">昵称</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">已加入社群</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">发帖数</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                            </thead>
+                            <tbody id="user-list-body" class="bg-white divide-y divide-gray-200">
+                            <tr><td colspan="6" class="py-10 text-center text-sm text-gray-400">正在加载...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 社长管理子面板 -->
+            <div id="upanel-leaders" class="hidden space-y-5">
+                <!-- 添加社长表单 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-base font-semibold text-gray-700 mb-4 pb-3 border-b border-gray-100">添加新社长账号</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">用户名</label>
+                            <input type="text" id="leaderUsername" placeholder="登录用户名" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">密码</label>
+                            <input type="text" id="leaderPassword" placeholder="登录密码" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">绑定社群</label>
+                            <select id="leaderCommunity" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                                <option value="">-- 选择社群（可选）--</option>
+                            </select>
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="addLeader()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-medium transition-colors">添加社长</button>
+                        </div>
+                    </div>
+                    <div id="leader-msg" class="hidden mt-3 text-sm px-3 py-2 rounded-lg"></div>
+                </div>
+
+                <!-- 社长列表 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                        <h3 class="text-base font-semibold text-gray-800">社长账号列表</h3>
+                        <button onclick="loadLeaders()" class="text-sm text-indigo-500 hover:text-indigo-700 font-medium">刷新</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">绑定社群</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                            </thead>
+                            <tbody id="leader-list-body" class="bg-white divide-y divide-gray-200">
+                            <tr><td colspan="3" class="py-10 text-center text-sm text-gray-400">正在加载...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 社群分类管理面板 ===== -->
+        <div id="panel-category" class="hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h3 class="text-base font-semibold text-gray-800">社群分类设置</h3>
+                    <span class="text-xs text-gray-400">为每个社群设置分类标签</span>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">社群名称</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-36">成员数</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-44">当前分类</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase w-64">设置分类</th>
+                    </tr>
+                    </thead>
+                    <tbody id="category-list-body" class="bg-white divide-y divide-gray-200">
+                    <tr><td colspan="4" class="py-10 text-center text-sm text-gray-400">正在加载...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== 全站公告面板 ===== -->
+        <div id="panel-announce" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 发布公告 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-base font-semibold text-gray-700 mb-4 pb-3 border-b border-gray-100">发布新公告</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">公告标题</label>
+                            <input type="text" id="annTitle" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="公告标题">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600 mb-1">公告内容</label>
+                            <textarea id="annContent" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none" placeholder="公告内容..."></textarea>
+                        </div>
+                        <div id="ann-msg" class="hidden text-sm px-3 py-2 rounded-lg"></div>
+                        <button onclick="publishAnnouncement()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg font-medium transition-colors">发 布</button>
+                    </div>
+                </div>
+                <!-- 公告列表 -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                        <h3 class="text-base font-semibold text-gray-800">已发布公告</h3>
+                        <button onclick="loadAnnouncements()" class="text-sm text-indigo-500 hover:text-indigo-700 font-medium">刷新</button>
+                    </div>
+                    <div id="ann-list" class="divide-y divide-gray-100 max-h-80 overflow-y-auto">
+                        <div class="py-8 text-center text-sm text-gray-400">正在加载...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 首页推荐管理面板 ===== -->
+        <div id="panel-recommend" class="hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h3 class="text-base font-semibold text-gray-800">首页推荐设置</h3>
+                    <span class="text-xs text-gray-400">推荐的社群将在学生广场置顶并高亮显示</span>
+                </div>
+                <div id="recommend-list" class="divide-y divide-gray-100">
+                    <div class="py-10 text-center text-sm text-gray-400">正在加载...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 内容审核面板 ===== -->
+        <div id="panel-content" class="hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h3 class="text-base font-semibold text-gray-800">全站帖子内容审核</h3>
+                    <button onclick="loadAllPosts()" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">刷新</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">所属社群</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">发布者</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">内容</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">状态</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">发布时间</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase w-24">操作</th>
+                        </tr>
+                        </thead>
+                        <tbody id="content-list-body" class="bg-white divide-y divide-gray-200">
+                        <tr><td colspan="7" class="py-10 text-center text-sm text-gray-400">正在加载...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </main>
 </div>
+
+<script>
+    let allUsers = [];
+    let chartPosts = null;
+    let chartMembers = null;
+
+    // ===== 导航切换 =====
+    const panels = ['stats', 'users', 'content', 'category', 'announce', 'recommend'];
+    const titles = { stats: '数据统计与分析', users: '用户信息管理', content: '内容审核与监管', category: '社群分类管理', announce: '发布全站公告', recommend: '首页社群推荐' };
+
+    function showPanel(name) {
+        panels.forEach(p => {
+            document.getElementById(`panel-${p}`).classList.add('hidden');
+            const nav = document.getElementById(`nav-${p}`);
+            nav.className = 'px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent text-gray-300 transition-colors';
+        });
+        document.getElementById(`panel-${name}`).classList.remove('hidden');
+        const activeNav = document.getElementById(`nav-${name}`);
+        activeNav.className = 'px-6 py-3 cursor-pointer bg-gray-800 border-l-4 border-indigo-500 text-white transition-colors';
+        document.getElementById('panel-title').textContent = titles[name];
+
+        if (name === 'users' && allUsers.length === 0) loadUsers();
+        if (name === 'content') loadAllPosts();
+        if (name === 'category') loadCategoryList();
+        if (name === 'announce') loadAnnouncements();
+        if (name === 'recommend') loadRecommendList();
+    }
+
+    // ===== 用户管理子标签 =====
+    function switchUserTab(tab) {
+        ['students', 'leaders'].forEach(t => {
+            document.getElementById(`upanel-${t}`).classList.add('hidden');
+            const btn = document.getElementById(`utab-${t}`);
+            btn.className = 'px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px transition-colors';
+        });
+        document.getElementById(`upanel-${tab}`).classList.remove('hidden');
+        const activeBtn = document.getElementById(`utab-${tab}`);
+        activeBtn.className = 'px-5 py-2.5 text-sm font-medium border-b-2 border-indigo-600 text-indigo-600 -mb-px transition-colors';
+        if (tab === 'leaders') { loadCommunitySelectOptions(); loadLeaders(); }
+    }
+
+    // ===== 数据统计 =====
+    function loadStats() {
+        fetch('/api/platform/stats')
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) {
+                    const d = res.data;
+                    document.getElementById('stat-students').textContent = d.studentCount;
+                    document.getElementById('stat-communities').textContent = d.communityCount;
+                    document.getElementById('stat-posts').textContent = d.postCount;
+                    document.getElementById('stat-activities').textContent = d.activityCount;
+                    document.getElementById('stat-comments').textContent = d.commentCount;
+                }
+            });
+
+        fetch('/api/platform/community/stats')
+            .then(r => r.json())
+            .then(res => {
+                if (res.code !== 200) return;
+                const data = res.data;
+                const labels = data.map(d => d.name);
+                const postCounts = data.map(d => d.postCount);
+                const memberCounts = data.map(d => d.memberCount);
+                const colors = ['rgba(99,102,241,0.8)', 'rgba(34,197,94,0.8)', 'rgba(59,130,246,0.8)', 'rgba(168,85,247,0.8)', 'rgba(251,146,60,0.8)'];
+
+                if (chartPosts) chartPosts.destroy();
+                chartPosts = new Chart(document.getElementById('chartPosts'), {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{ label: '帖子数', data: postCounts, backgroundColor: colors, borderRadius: 6 }]
+                    },
+                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                });
+
+                if (chartMembers) chartMembers.destroy();
+                chartMembers = new Chart(document.getElementById('chartMembers'), {
+                    type: 'doughnut',
+                    data: {
+                        labels,
+                        datasets: [{ data: memberCounts, backgroundColor: colors, hoverOffset: 4 }]
+                    },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+                });
+            });
+    }
+
+    // ===== 用户管理 =====
+    function loadUsers() {
+        fetch('/api/platform/student/list')
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) { allUsers = res.data; renderUsers(allUsers); }
+                else document.getElementById('user-list-body').innerHTML =
+                    `<tr><td colspan="5" class="py-10 text-center text-red-500">${res.msg}</td></tr>`;
+            });
+    }
+
+    function filterUsers() {
+        const kw = document.getElementById('userSearch').value.trim().toLowerCase();
+        renderUsers(kw ? allUsers.filter(u =>
+            u.studentNo.toLowerCase().includes(kw) || (u.nickname || '').toLowerCase().includes(kw)
+        ) : allUsers);
+    }
+
+    function renderUsers(list) {
+        const tbody = document.getElementById('user-list-body');
+        if (!list || list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="py-10 text-center text-sm text-gray-400">暂无数据</td></tr>';
+            return;
+        }
+        tbody.innerHTML = list.map(u => {
+            const statusBadge = u.status === 1
+                ? `<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">正常</span>`
+                : `<span class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs">已禁用</span>`;
+            const toggleBtn = u.status === 1
+                ? `<button onclick="toggleStudentStatus(${u.id})" class="text-yellow-600 bg-yellow-50 hover:bg-yellow-100 px-3 py-1.5 rounded text-xs font-medium transition-colors">禁用</button>`
+                : `<button onclick="toggleStudentStatus(${u.id})" class="text-green-600 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded text-xs font-medium transition-colors">启用</button>`;
+            return `
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 text-sm font-medium text-gray-900">${escapeHtml(u.studentNo)}</td>
+                <td class="px-6 py-4 text-sm text-gray-600">${u.nickname ? escapeHtml(u.nickname) : '<span class="text-gray-400">未设置</span>'}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${u.joinedCommunities} 个</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${u.postCount} 篇</td>
+                <td class="px-6 py-4">${statusBadge}</td>
+                <td class="px-6 py-4 text-right">
+                    <div class="flex items-center justify-end space-x-2">
+                        ${toggleBtn}
+                        <button onclick="deleteStudent(${u.id}, '${escapeHtml(u.studentNo)}')"
+                            class="text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded text-xs font-medium transition-colors">删除</button>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function toggleStudentStatus(id) {
+        const fd = new URLSearchParams();
+        fd.append('studentId', id);
+        fetch('/api/platform/student/toggleStatus', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) loadUsers();
+                else alert('❌ ' + res.msg);
+            });
+    }
+
+    function deleteStudent(id, no) {
+        if (!confirm(`确定要删除学号「${no}」的账号吗？此操作不可恢复！`)) return;
+        const fd = new URLSearchParams();
+        fd.append('studentId', id);
+        fetch('/api/platform/student/delete', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) loadUsers();
+                else alert('❌ ' + res.msg);
+            });
+    }
+
+    // ===== 社长管理 =====
+    function loadCommunitySelectOptions() {
+        fetch('/api/platform/community/list')
+            .then(r => r.json())
+            .then(res => {
+                if (res.code !== 200) return;
+                const sel = document.getElementById('leaderCommunity');
+                const existingVal = sel.value;
+                sel.innerHTML = '<option value="">-- 选择社群（可选）--</option>' +
+                    res.data.map(c => `<option value="${c.id}" ${existingVal == c.id ? 'selected':''}>${escapeHtml(c.name)}</option>`).join('');
+            });
+    }
+
+    function loadLeaders() {
+        fetch('/api/platform/admin/list')
+            .then(r => r.json())
+            .then(res => {
+                const tbody = document.getElementById('leader-list-body');
+                if (res.code !== 200) { tbody.innerHTML = `<tr><td colspan="3" class="py-8 text-center text-red-500">${res.msg}</td></tr>`; return; }
+                if (!res.data || res.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="py-10 text-center text-sm text-gray-400">暂无社长账号</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = res.data.map(a => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-800">${escapeHtml(a.username)}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">
+                        ${a.communityId
+                            ? `<span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-xs">${escapeHtml(a.communityName)}</span>`
+                            : `<span class="text-gray-400 text-xs">未绑定</span>`}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="deleteLeader(${a.id}, '${escapeHtml(a.username)}')"
+                            class="text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded text-xs font-medium transition-colors">删除</button>
+                    </td>
+                </tr>`).join('');
+            });
+    }
+
+    function addLeader() {
+        const username = document.getElementById('leaderUsername').value.trim();
+        const password = document.getElementById('leaderPassword').value.trim();
+        const communityId = document.getElementById('leaderCommunity').value;
+        if (!username || !password) return showLeaderMsg('用户名和密码不能为空', true);
+        const fd = new URLSearchParams();
+        fd.append('username', username);
+        fd.append('password', password);
+        if (communityId) fd.append('communityId', communityId);
+        fetch('/api/platform/admin/add', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                showLeaderMsg(res.msg, res.code !== 200);
+                if (res.code === 200) {
+                    document.getElementById('leaderUsername').value = '';
+                    document.getElementById('leaderPassword').value = '';
+                    document.getElementById('leaderCommunity').value = '';
+                    loadLeaders();
+                }
+            });
+    }
+
+    function deleteLeader(id, username) {
+        if (!confirm(`确定要删除社长账号「${username}」吗？`)) return;
+        const fd = new URLSearchParams();
+        fd.append('adminId', id);
+        fetch('/api/platform/admin/delete', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) loadLeaders();
+                else alert('❌ ' + res.msg);
+            });
+    }
+
+    function showLeaderMsg(text, isError) {
+        const el = document.getElementById('leader-msg');
+        el.textContent = text;
+        el.className = isError ? 'mt-3 text-sm px-3 py-2 rounded-lg bg-red-50 text-red-600' : 'mt-3 text-sm px-3 py-2 rounded-lg bg-green-50 text-green-600';
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 3000);
+    }
+
+    // ===== 内容审核 =====
+    function loadAllPosts() {
+        fetch('/api/platform/post/list')
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) renderPosts(res.data);
+                else document.getElementById('content-list-body').innerHTML =
+                    `<tr><td colspan="7" class="py-10 text-center text-red-500">${res.msg}</td></tr>`;
+            });
+    }
+
+    function renderPosts(list) {
+        const tbody = document.getElementById('content-list-body');
+        if (!list || list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="py-10 text-center text-sm text-gray-400">暂无帖子</td></tr>';
+            return;
+        }
+        tbody.innerHTML = list.map(p => {
+            const badge = p.status === 1
+                ? `<span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs">正常</span>`
+                : `<span class="px-2 py-0.5 bg-red-100 text-red-600 rounded-full text-xs">已隐藏</span>`;
+            const btnLabel = p.status === 1 ? '隐藏' : '恢复';
+            const btnClass = p.status === 1
+                ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100'
+                : 'text-green-600 bg-green-50 hover:bg-green-100';
+            const d = new Date(p.createTime);
+            const t = `${d.getMonth()+1}-${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            const preview = escapeHtml(p.content.length > 35 ? p.content.substring(0,35) + '...' : p.content);
+            return `
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-3 text-xs text-gray-400">#${p.id}</td>
+                <td class="px-6 py-3 text-sm text-gray-600">${escapeHtml(p.communityName)}</td>
+                <td class="px-6 py-3 text-sm font-medium text-gray-800">${escapeHtml(p.authorName)}</td>
+                <td class="px-6 py-3 text-sm text-gray-600">${preview}</td>
+                <td class="px-6 py-3">${badge}</td>
+                <td class="px-6 py-3 text-xs text-gray-400 whitespace-nowrap">${t}</td>
+                <td class="px-6 py-3 text-right">
+                    <button onclick="togglePost(${p.id})" class="px-3 py-1 rounded text-xs font-medium transition-colors ${btnClass}">${btnLabel}</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function togglePost(postId) {
+        const fd = new URLSearchParams();
+        fd.append('postId', postId);
+        fetch('/api/platform/post/toggleStatus', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) loadAllPosts();
+                else alert('❌ ' + res.msg);
+            });
+    }
+
+    // ===== 社群分类管理 =====
+    const CATEGORY_OPTIONS = ['音乐', '科技', '摄影', '游戏', '体育', '艺术', '学习', '生活', '其他'];
+
+    function loadCategoryList() {
+        fetch('/api/platform/community/list')
+            .then(r => r.json())
+            .then(res => {
+                const tbody = document.getElementById('category-list-body');
+                if (res.code !== 200) { tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-red-500">${res.msg}</td></tr>`; return; }
+                if (!res.data || res.data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-sm text-gray-400">暂无社群</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = res.data.map(c => {
+                    const categoryBadge = c.category
+                        ? `<span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-medium">${escapeHtml(c.category)}</span>`
+                        : `<span class="text-xs text-gray-400">未分类</span>`;
+                    const options = CATEGORY_OPTIONS.map(o =>
+                        `<option value="${o}" ${c.category === o ? 'selected' : ''}>${o}</option>`
+                    ).join('');
+                    return `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 text-sm font-medium text-gray-800">${escapeHtml(c.name)}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${c.memberCount} 人</td>
+                        <td class="px-6 py-4">${categoryBadge}</td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end space-x-2">
+                                <select id="cat-select-${c.id}" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-indigo-400">
+                                    <option value="">-- 选择分类 --</option>
+                                    ${options}
+                                </select>
+                                <button onclick="setCategory(${c.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors">保存</button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+            });
+    }
+
+    function setCategory(communityId) {
+        const val = document.getElementById(`cat-select-${communityId}`).value;
+        const fd = new URLSearchParams();
+        fd.append('communityId', communityId);
+        fd.append('category', val);
+        fetch('/api/platform/community/setCategory', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) loadCategoryList();
+                else alert('❌ ' + res.msg);
+            });
+    }
+
+    // ===== 全站公告 =====
+    function loadAnnouncements() {
+        fetch('/api/platform/announcement/list')
+            .then(r => r.json())
+            .then(res => {
+                const el = document.getElementById('ann-list');
+                if (res.code !== 200) { el.innerHTML = `<div class="py-6 text-center text-red-500 text-sm">${res.msg}</div>`; return; }
+                if (!res.data || res.data.length === 0) {
+                    el.innerHTML = '<div class="py-8 text-center text-sm text-gray-400">暂无公告</div>';
+                    return;
+                }
+                el.innerHTML = res.data.map(a => {
+                    const d = new Date(a.createTime);
+                    const t = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    return `
+                    <div class="px-5 py-4 hover:bg-gray-50 flex items-start justify-between">
+                        <div class="flex-1 min-w-0 mr-3">
+                            <p class="text-sm font-semibold text-gray-800 mb-0.5">${escapeHtml(a.title)}</p>
+                            <p class="text-xs text-gray-500 line-clamp-1">${escapeHtml(a.content)}</p>
+                            <p class="text-xs text-gray-400 mt-1">${t}</p>
+                        </div>
+                        <button onclick="deleteAnnouncement(${a.id})" class="text-red-500 hover:text-red-700 text-xs font-medium flex-shrink-0">删除</button>
+                    </div>`;
+                }).join('');
+            });
+    }
+
+    function publishAnnouncement() {
+        const title = document.getElementById('annTitle').value.trim();
+        const content = document.getElementById('annContent').value.trim();
+        if (!title || !content) return showAnnMsg('标题和内容不能为空', true);
+        const fd = new URLSearchParams();
+        fd.append('title', title);
+        fd.append('content', content);
+        fetch('/api/platform/announcement/publish', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                showAnnMsg(res.msg, res.code !== 200);
+                if (res.code === 200) {
+                    document.getElementById('annTitle').value = '';
+                    document.getElementById('annContent').value = '';
+                    loadAnnouncements();
+                }
+            });
+    }
+
+    function deleteAnnouncement(id) {
+        if (!confirm('确定删除该公告吗？')) return;
+        const fd = new URLSearchParams();
+        fd.append('id', id);
+        fetch('/api/platform/announcement/delete', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => { if (res.code === 200) loadAnnouncements(); else alert('❌ ' + res.msg); });
+    }
+
+    function showAnnMsg(text, isError) {
+        const el = document.getElementById('ann-msg');
+        el.textContent = text;
+        el.className = isError ? 'text-sm px-3 py-2 rounded-lg bg-red-50 text-red-600' : 'text-sm px-3 py-2 rounded-lg bg-green-50 text-green-600';
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 3000);
+    }
+
+    // ===== 首页推荐管理 =====
+    function loadRecommendList() {
+        fetch('/api/platform/community/list')
+            .then(r => r.json())
+            .then(res => {
+                const el = document.getElementById('recommend-list');
+                if (res.code !== 200) { el.innerHTML = `<div class="py-8 text-center text-red-500 text-sm">${res.msg}</div>`; return; }
+                if (!res.data || res.data.length === 0) {
+                    el.innerHTML = '<div class="py-10 text-center text-sm text-gray-400">暂无社群</div>';
+                    return;
+                }
+                el.innerHTML = res.data.map(c => {
+                    const statusBadge = c.isRecommended
+                        ? `<span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">已推荐</span>`
+                        : `<span class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">未推荐</span>`;
+                    const btnClass = c.isRecommended
+                        ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        : 'bg-yellow-400 text-white hover:bg-yellow-500';
+                    const btnText = c.isRecommended ? '取消推荐' : '设为推荐';
+                    return `
+                    <div class="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-sm font-medium text-gray-800">${escapeHtml(c.name)}</span>
+                            ${c.category ? `<span class="text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full">${escapeHtml(c.category)}</span>` : ''}
+                            ${statusBadge}
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="text-sm text-gray-400">${c.memberCount} 名成员</span>
+                            <button id="rec-btn-${c.id}" onclick="toggleRecommend(${c.id})"
+                                class="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${btnClass}">${btnText}</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            });
+    }
+
+    function toggleRecommend(communityId) {
+        const fd = new URLSearchParams();
+        fd.append('communityId', communityId);
+        fetch('/api/platform/community/toggleRecommend', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) loadRecommendList();
+                else alert('❌ ' + res.msg);
+            });
+    }
+
+    function escapeHtml(str) {
+        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', loadStats);
+</script>
 </body>
 </html>

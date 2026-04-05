@@ -6,24 +6,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 font-sans flex h-screen overflow-hidden">
+
+<!-- 侧边栏 -->
 <div class="bg-blue-800 shadow-xl w-64 flex flex-col z-20">
     <div class="text-white text-xl font-bold p-5 flex items-center border-b border-blue-700">
         <span class="mr-2">🎯</span> 社群运营中心
     </div>
     <ul class="flex flex-col py-4 flex-1 text-blue-100 font-medium space-y-1">
-        <a href="#" class="px-6 py-3 hover:bg-blue-700 hover:text-white cursor-pointer border-l-4 border-transparent block">社群信息管理</a>
+        <a href="/community/info" class="px-6 py-3 hover:bg-blue-700 hover:text-white border-l-4 border-transparent block">社群信息管理</a>
         <a href="/community/member" class="px-6 py-3 bg-blue-700 text-white border-l-4 border-yellow-400 block">成员管理</a>
-        <a href="#" class="px-6 py-3 hover:bg-blue-700 hover:text-white cursor-pointer border-l-4 border-transparent block">帖子管理</a>
-        <a href="/community/activity" class="px-6 py-3 hover:bg-blue-700 hover:text-white cursor-pointer border-l-4 border-transparent block">活动内容与评论管理</a>
-        <a href="#" class="px-6 py-3 hover:bg-blue-700 hover:text-white cursor-pointer border-l-4 border-transparent block">个人信息管理</a>
+        <a href="/community/post" class="px-6 py-3 hover:bg-blue-700 hover:text-white border-l-4 border-transparent block">帖子管理</a>
+        <a href="/community/activity" class="px-6 py-3 hover:bg-blue-700 hover:text-white border-l-4 border-transparent block">活动内容与评论管理</a>
+        <a href="/community/profile" class="px-6 py-3 hover:bg-blue-700 hover:text-white border-l-4 border-transparent block">个人信息管理</a>
     </ul>
     <div class="p-4 border-t border-blue-700">
         <a href="/" class="block w-full text-center bg-blue-700 hover:bg-red-500 hover:text-white py-2.5 rounded-lg transition-colors text-sm font-medium">退出登录</a>
     </div>
 </div>
 
-<div class="flex-1 flex flex-col overflow-hidden relative">
-    <header class="bg-white shadow-sm p-5 flex justify-between items-center z-10 border-b border-gray-100">
+<!-- 主内容 -->
+<div class="flex-1 flex flex-col overflow-hidden">
+    <header class="bg-white shadow-sm p-5 flex justify-between items-center border-b border-gray-100">
         <h2 class="text-lg font-bold text-gray-800">成员管理</h2>
         <div class="flex items-center space-x-3">
             <span class="text-sm font-medium text-gray-600">社长</span>
@@ -33,21 +36,49 @@
 
     <main class="flex-1 overflow-y-auto bg-gray-50 p-8">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-gray-800">入群申请审批</h3>
+            <!-- Tab 切换 -->
+            <div class="flex border-b border-gray-200">
+                <button id="tab-audit" onclick="switchTab('audit')"
+                    class="px-6 py-4 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 transition-colors">
+                    待审核申请
+                    <span id="audit-badge" class="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full hidden">0</span>
+                </button>
+                <button id="tab-joined" onclick="switchTab('joined')"
+                    class="px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors">
+                    已加入成员
+                </button>
             </div>
-            <div class="p-0">
+
+            <!-- 待审核 -->
+            <div id="panel-audit">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">学号</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">昵称</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">申请时间</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">学号</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">昵称</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">申请时间</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
                     </tr>
                     </thead>
                     <tbody id="audit-list-body" class="bg-white divide-y divide-gray-200">
-                    <tr><td colspan="4" class="px-6 py-10 text-center text-sm text-gray-400">正在加载数据...</td></tr>
+                    <tr><td colspan="4" class="px-6 py-10 text-center text-sm text-gray-400">正在加载...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 已加入 -->
+            <div id="panel-joined" class="hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">学号</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">昵称</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">加入时间</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="joined-list-body" class="bg-white divide-y divide-gray-200">
+                    <tr><td colspan="4" class="px-6 py-10 text-center text-sm text-gray-400">正在加载...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -56,50 +87,128 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', loadAuditList);
+    let currentTab = 'audit';
 
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAuditList();
+        loadJoinedList();
+    });
+
+    function switchTab(tab) {
+        currentTab = tab;
+        const auditBtn = document.getElementById('tab-audit');
+        const joinedBtn = document.getElementById('tab-joined');
+        const auditPanel = document.getElementById('panel-audit');
+        const joinedPanel = document.getElementById('panel-joined');
+
+        if (tab === 'audit') {
+            auditBtn.className = 'px-6 py-4 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 transition-colors';
+            joinedBtn.className = 'px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors';
+            auditPanel.classList.remove('hidden');
+            joinedPanel.classList.add('hidden');
+        } else {
+            joinedBtn.className = 'px-6 py-4 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 transition-colors';
+            auditBtn.className = 'px-6 py-4 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors';
+            joinedPanel.classList.remove('hidden');
+            auditPanel.classList.add('hidden');
+        }
+    }
+
+    // ===== 待审核 =====
     function loadAuditList() {
         fetch('/api/community/member/auditList')
-            .then(res => res.json())
+            .then(r => r.json())
             .then(res => {
                 if (res.code === 200) renderAuditTable(res.data);
-                else document.getElementById('audit-list-body').innerHTML = `<tr><td colspan="4" class="text-center text-red-500 py-10">${res.msg}</td></tr>`;
+                else document.getElementById('audit-list-body').innerHTML =
+                    `<tr><td colspan="4" class="text-center text-red-500 py-10">${res.msg}</td></tr>`;
             });
     }
 
     function renderAuditTable(list) {
         const tbody = document.getElementById('audit-list-body');
-        if (!list || list.length === 0) return tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-sm text-gray-400">暂无待处理的入群申请</td></tr>';
+        const badge = document.getElementById('audit-badge');
 
-        let html = '';
-        list.forEach(item => {
-            const date = new Date(item.joinTime);
-            const timeStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-            html += `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.studentNo}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.nickname || '未设置'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${timeStr}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                        <button onclick="handleAudit(${item.recordId}, 1)" class="text-white bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded transition-colors shadow-sm">同意</button>
-                        <button onclick="handleAudit(${item.recordId}, 2)" class="text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded transition-colors shadow-sm">拒绝</button>
-                    </td>
-                </tr>`;
-        });
-        tbody.innerHTML = html;
+        if (!list || list.length === 0) {
+            badge.classList.add('hidden');
+            tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-sm text-gray-400">暂无待处理的入群申请</td></tr>';
+            return;
+        }
+
+        badge.textContent = list.length;
+        badge.classList.remove('hidden');
+
+        tbody.innerHTML = list.map(item => {
+            const d = new Date(item.joinTime);
+            const t = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            return `
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 text-sm font-medium text-gray-900">${item.studentNo}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${item.nickname || '未设置'}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${t}</td>
+                <td class="px-6 py-4 text-right space-x-2">
+                    <button onclick="handleAudit(${item.recordId}, 1)" class="text-white bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded text-sm transition-colors">同意</button>
+                    <button onclick="handleAudit(${item.recordId}, 2)" class="text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded text-sm transition-colors">拒绝</button>
+                </td>
+            </tr>`;
+        }).join('');
     }
 
     function handleAudit(recordId, status) {
-        if (!confirm(`确定要 ${status === 1 ? '同意' : '拒绝'} 吗？`)) return;
-        const formData = new URLSearchParams();
-        formData.append('recordId', recordId);
-        formData.append('status', status);
-
-        fetch('/api/community/member/audit', { method: 'POST', body: formData })
-            .then(res => res.json())
+        if (!confirm(`确定要 ${status === 1 ? '同意' : '拒绝'} 该申请吗？`)) return;
+        const fd = new URLSearchParams();
+        fd.append('recordId', recordId);
+        fd.append('status', status);
+        fetch('/api/community/member/audit', { method: 'POST', body: fd })
+            .then(r => r.json())
             .then(res => {
-                if (res.code === 200) loadAuditList();
-                else alert("❌ " + res.msg);
+                if (res.code === 200) { loadAuditList(); loadJoinedList(); }
+                else alert('❌ ' + res.msg);
+            });
+    }
+
+    // ===== 已加入成员 =====
+    function loadJoinedList() {
+        fetch('/api/community/member/joinedList')
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) renderJoinedTable(res.data);
+                else document.getElementById('joined-list-body').innerHTML =
+                    `<tr><td colspan="4" class="text-center text-red-500 py-10">${res.msg}</td></tr>`;
+            });
+    }
+
+    function renderJoinedTable(list) {
+        const tbody = document.getElementById('joined-list-body');
+        if (!list || list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-sm text-gray-400">暂无成员</td></tr>';
+            return;
+        }
+        tbody.innerHTML = list.map(item => {
+            const d = new Date(item.joinTime);
+            const t = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            return `
+            <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-6 py-4 text-sm font-medium text-gray-900">${item.studentNo}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">${item.nickname || '未设置'}</td>
+                <td class="px-6 py-4 text-sm text-gray-400">${t}</td>
+                <td class="px-6 py-4 text-right">
+                    <button onclick="removeMember(${item.recordId}, '${item.nickname || item.studentNo}')"
+                        class="text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded text-sm transition-colors">踢出</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function removeMember(recordId, name) {
+        if (!confirm(`确定要将「${name}」踢出社群吗？`)) return;
+        const fd = new URLSearchParams();
+        fd.append('recordId', recordId);
+        fetch('/api/community/member/remove', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) { loadJoinedList(); }
+                else alert('❌ ' + res.msg);
             });
     }
 </script>

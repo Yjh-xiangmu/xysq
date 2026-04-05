@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>个人信息 - 兴趣Share</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans pt-16">
+
+<nav class="bg-white shadow-sm fixed w-full z-20 top-0 border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center space-x-4">
+                <a href="/student/index" class="text-gray-500 hover:text-indigo-600 font-medium transition-colors">← 返回广场</a>
+                <span class="text-xl font-bold border-l-2 pl-4 border-gray-300 text-gray-800">个人信息</span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-lg mx-auto px-4 py-10">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <!-- 头部 -->
+        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-10 text-center">
+            <div class="h-20 w-20 rounded-full bg-white/30 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-3 border-2 border-white/60" id="avatarCircle">?</div>
+            <h2 class="text-white text-xl font-bold" id="nicknameDisplay">加载中...</h2>
+            <p class="text-indigo-200 text-sm mt-1" id="studentNoDisplay"></p>
+        </div>
+
+        <div class="p-8 space-y-8">
+            <!-- 修改昵称 -->
+            <div>
+                <h3 class="text-base font-semibold text-gray-700 mb-4 flex items-center">
+                    <span class="w-1 h-4 bg-indigo-500 rounded mr-2"></span>修改昵称
+                </h3>
+                <div class="space-y-3">
+                    <input type="text" id="newNickname" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" placeholder="输入新昵称">
+                    <button onclick="updateNickname()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg font-medium transition-colors">保存昵称</button>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-100"></div>
+
+            <!-- 修改密码 -->
+            <div>
+                <h3 class="text-base font-semibold text-gray-700 mb-4 flex items-center">
+                    <span class="w-1 h-4 bg-indigo-500 rounded mr-2"></span>修改密码
+                </h3>
+                <div class="space-y-3">
+                    <input type="password" id="oldPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" placeholder="当前密码">
+                    <input type="password" id="newPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" placeholder="新密码（至少6位）">
+                    <input type="password" id="confirmPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" placeholder="确认新密码">
+                    <button onclick="updatePassword()" class="w-full bg-gray-700 hover:bg-gray-800 text-white py-2.5 rounded-lg font-medium transition-colors">确认修改密码</button>
+                </div>
+            </div>
+
+            <div id="msg-area" class="hidden text-sm px-4 py-2 rounded-lg"></div>
+        </div>
+    </div>
+</main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', loadProfile);
+
+    function loadProfile() {
+        fetch('/api/student/profile')
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) {
+                    const u = res.data;
+                    document.getElementById('nicknameDisplay').textContent = u.nickname || u.studentNo;
+                    document.getElementById('studentNoDisplay').textContent = '学号：' + u.studentNo;
+                    document.getElementById('avatarCircle').textContent = (u.nickname || u.studentNo).charAt(0);
+                    document.getElementById('newNickname').value = u.nickname || '';
+                }
+            });
+    }
+
+    function showMsg(text, isError) {
+        const el = document.getElementById('msg-area');
+        el.textContent = text;
+        el.className = isError
+            ? 'text-sm px-4 py-2 rounded-lg bg-red-50 text-red-600'
+            : 'text-sm px-4 py-2 rounded-lg bg-green-50 text-green-600';
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 3000);
+    }
+
+    function updateNickname() {
+        const nickname = document.getElementById('newNickname').value.trim();
+        if (!nickname) return showMsg('昵称不能为空', true);
+        const fd = new URLSearchParams();
+        fd.append('nickname', nickname);
+        fetch('/api/student/profile/update', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                showMsg(res.msg, res.code !== 200);
+                if (res.code === 200) {
+                    document.getElementById('nicknameDisplay').textContent = nickname;
+                    document.getElementById('avatarCircle').textContent = nickname.charAt(0);
+                }
+            });
+    }
+
+    function updatePassword() {
+        const oldPwd = document.getElementById('oldPwd').value.trim();
+        const newPwd = document.getElementById('newPwd').value.trim();
+        const confirmPwd = document.getElementById('confirmPwd').value.trim();
+        if (!oldPwd || !newPwd || !confirmPwd) return showMsg('请填写所有密码字段', true);
+        if (newPwd !== confirmPwd) return showMsg('两次新密码不一致', true);
+        if (newPwd.length < 6) return showMsg('新密码不能少于6位', true);
+        const fd = new URLSearchParams();
+        fd.append('oldPwd', oldPwd);
+        fd.append('newPwd', newPwd);
+        fetch('/api/student/password/update', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                showMsg(res.msg, res.code !== 200);
+                if (res.code === 200) {
+                    document.getElementById('oldPwd').value = '';
+                    document.getElementById('newPwd').value = '';
+                    document.getElementById('confirmPwd').value = '';
+                    setTimeout(() => location.href = '/', 1500);
+                }
+            });
+    }
+</script>
+</body>
+</html>

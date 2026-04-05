@@ -11,55 +11,52 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Controller
 public class AuthController {
 
-    @Autowired
-    private SysAdminMapper adminMapper;
-    @Autowired
-    private SysStudentMapper studentMapper;
+    @Autowired private SysAdminMapper adminMapper;
+    @Autowired private SysStudentMapper studentMapper;
 
-    // ================= 页面路由 =================
+    // ============== 页面路由 ==============
 
-    // 登录页
     @GetMapping("/")
-    public String loginPage() {
-        return "login";
-    }
+    public String loginPage() { return "login"; }
 
-    // 平台管理员首页
     @GetMapping("/platform/index")
-    public String platformIndex() {
-        return "platform/index";
-    }
+    public String platformIndex() { return "platform/index"; }
 
-    // 学生首页 (发现社群广场)
     @GetMapping("/student/index")
-    public String studentIndex() {
-        return "student/index";
-    }
+    public String studentIndex() { return "student/index"; }
 
-    // 社群管理员 - 成员管理页 (拆分后的新页面)
+    @GetMapping("/student/profile")
+    public String studentProfile() { return "student/profile"; }
+
+    @GetMapping("/student/posts")
+    public String studentPosts() { return "student/posts"; }
+
     @GetMapping("/community/member")
-    public String communityMember() {
-        return "community/member";
-    }
+    public String communityMember() { return "community/member"; }
 
-    // 社群管理员 - 活动管理页 (拆分后的新页面)
     @GetMapping("/community/activity")
-    public String communityActivity() {
-        return "community/activity";
-    }
+    public String communityActivity() { return "community/activity"; }
 
-    // 兼容旧代码，防止浏览器有缓存访问原路径报错
+    @GetMapping("/community/post")
+    public String communityPost() { return "community/post-manage"; }
+
+    @GetMapping("/community/info")
+    public String communityInfo() { return "community/info"; }
+
+    @GetMapping("/community/profile")
+    public String communityProfile() { return "community/profile"; }
+
     @GetMapping("/community/index")
-    public String communityIndex() {
-        return "redirect:/community/member";
-    }
+    public String communityIndex() { return "redirect:/community/member"; }
 
-    // ================= API 接口 =================
+    // ============== API ==============
 
-    // API：登录接口
     @ResponseBody
     @PostMapping("/api/login")
     public Result<?> login(String username, String password, Integer role, HttpSession session) {
@@ -69,34 +66,75 @@ public class AuthController {
             if (admin != null) {
                 session.setAttribute("user", admin);
                 session.setAttribute("role", role);
-                // 角色1跳转平台首页，角色2直接跳转社长成员管理页
                 return Result.success(role == 1 ? "/platform/index" : "/community/member");
             }
         } else if (role == 3) {
             SysStudent student = studentMapper.selectOne(new QueryWrapper<SysStudent>()
                     .eq("student_no", username).eq("password", password));
             if (student != null) {
+                if (student.getStatus() != null && student.getStatus() == 0)
+                    return Result.error("账号已被禁用，请联系管理员");
                 session.setAttribute("user", student);
                 session.setAttribute("role", 3);
-                // 角色3跳转学生首页
                 return Result.success("/student/index");
             }
         }
         return Result.error("账号或密码错误");
     }
 
-    // API：注册接口 (仅学生)
     @ResponseBody
     @PostMapping("/api/register")
     public Result<?> register(String studentNo, String password, String nickname) {
         SysStudent exist = studentMapper.selectOne(new QueryWrapper<SysStudent>().eq("student_no", studentNo));
         if (exist != null) return Result.error("学号已存在");
-
         SysStudent student = new SysStudent();
         student.setStudentNo(studentNo);
         student.setPassword(password);
         student.setNickname(nickname);
         studentMapper.insert(student);
         return Result.success("注册成功");
+    }
+
+    // 获取学生个人信息
+    @ResponseBody
+    @GetMapping("/api/student/profile")
+    public Result<Map<String, Object>> getStudentProfile(HttpSession session) {
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof SysStudent student)) return Result.error("请先登录");
+        Map<String, Object> data = new HashMap<>();
+        data.put("studentNo", student.getStudentNo());
+        data.put("nickname", student.getNickname());
+        return Result.success(data);
+    }
+
+    // 修改学生昵称
+    @ResponseBody
+    @PostMapping("/api/student/profile/update")
+    public Result<?> updateStudentProfile(String nickname, HttpSession session) {
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof SysStudent student)) return Result.error("请先登录");
+        if (nickname == null || nickname.trim().isEmpty()) return Result.error("昵称不能为空");
+        SysStudent dbStudent = studentMapper.selectById(student.getId());
+        dbStudent.setNickname(nickname.trim());
+        studentMapper.updateById(dbStudent);
+        // 更新 session
+        student.setNickname(nickname.trim());
+        session.setAttribute("user", student);
+        return Result.success("昵称修改成功");
+    }
+
+    // 修改学生密码
+    @ResponseBody
+    @PostMapping("/api/student/password/update")
+    public Result<?> updateStudentPassword(String oldPwd, String newPwd, HttpSession session) {
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof SysStudent student)) return Result.error("请先登录");
+        SysStudent dbStudent = studentMapper.selectById(student.getId());
+        if (!dbStudent.getPassword().equals(oldPwd)) return Result.error("原密码错误");
+        if (newPwd == null || newPwd.length() < 6) return Result.error("新密码不能少于6位");
+        dbStudent.setPassword(newPwd);
+        studentMapper.updateById(dbStudent);
+        session.invalidate();
+        return Result.success("密码修改成功，请重新登录");
     }
 }

@@ -5,6 +5,8 @@ import com.xysq.common.Result;
 import com.xysq.entity.SysCommunity;
 import com.xysq.entity.SysCommunityMember;
 import com.xysq.entity.SysStudent;
+import com.xysq.entity.SysAnnouncement;
+import com.xysq.mapper.SysAnnouncementMapper;
 import com.xysq.mapper.SysCommunityMapper;
 import com.xysq.mapper.SysCommunityMemberMapper;
 import jakarta.servlet.http.HttpSession;
@@ -20,10 +22,9 @@ import java.util.Map;
 @RequestMapping("/api/student")
 public class StudentCommunityController {
 
-    @Autowired
-    private SysCommunityMapper communityMapper;
-    @Autowired
-    private SysCommunityMemberMapper memberMapper;
+    @Autowired private SysCommunityMapper communityMapper;
+    @Autowired private SysCommunityMemberMapper memberMapper;
+    @Autowired private SysAnnouncementMapper announcementMapper;
 
     // 获取所有社群列表（广场）- 新增了状态判断
     @GetMapping("/community/list")
@@ -53,10 +54,29 @@ public class StudentCommunityController {
                 }
             }
             map.put("joinStatus", joinStatus);
+            map.put("isRecommended", c.getIsRecommended() != null && c.getIsRecommended() == 1);
+            map.put("category", c.getCategory());
             resultList.add(map);
         }
 
         return Result.success(resultList);
+    }
+
+    // 获取最新公告（最多3条）
+    @GetMapping("/announcements")
+    public Result<List<Map<String, Object>>> getAnnouncements() {
+        List<SysAnnouncement> list = announcementMapper.selectList(
+                new QueryWrapper<SysAnnouncement>().orderByDesc("create_time").last("LIMIT 3"));
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SysAnnouncement a : list) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", a.getId());
+            m.put("title", a.getTitle());
+            m.put("content", a.getContent());
+            m.put("createTime", a.getCreateTime());
+            result.add(m);
+        }
+        return Result.success(result);
     }
 
     // 申请加入社群 (保持不变)
