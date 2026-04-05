@@ -10,7 +10,6 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -20,42 +19,32 @@ public class AuthController {
     @Autowired private SysAdminMapper adminMapper;
     @Autowired private SysStudentMapper studentMapper;
 
-    // ============== 页面路由 ==============
-
     @GetMapping("/")
     public String loginPage() { return "login"; }
-
     @GetMapping("/platform/index")
     public String platformIndex() { return "platform/index"; }
-
     @GetMapping("/student/index")
     public String studentIndex() { return "student/index"; }
-
     @GetMapping("/student/profile")
     public String studentProfile() { return "student/profile"; }
-
     @GetMapping("/student/posts")
     public String studentPosts() { return "student/posts"; }
-
     @GetMapping("/community/member")
     public String communityMember() { return "community/member"; }
-
     @GetMapping("/community/activity")
     public String communityActivity() { return "community/activity"; }
-
     @GetMapping("/community/post")
     public String communityPost() { return "community/post-manage"; }
-
     @GetMapping("/community/info")
     public String communityInfo() { return "community/info"; }
-
     @GetMapping("/community/profile")
     public String communityProfile() { return "community/profile"; }
-
     @GetMapping("/community/index")
     public String communityIndex() { return "redirect:/community/member"; }
 
-    // ============== API ==============
+    // 新增：全局活动大厅路由
+    @GetMapping("/student/activities")
+    public String studentActivities() { return "student/activities"; }
 
     @ResponseBody
     @PostMapping("/api/login")
@@ -95,7 +84,6 @@ public class AuthController {
         return Result.success("注册成功");
     }
 
-    // 获取学生个人信息
     @ResponseBody
     @GetMapping("/api/student/profile")
     public Result<Map<String, Object>> getStudentProfile(HttpSession session) {
@@ -107,7 +95,6 @@ public class AuthController {
         return Result.success(data);
     }
 
-    // 修改学生昵称
     @ResponseBody
     @PostMapping("/api/student/profile/update")
     public Result<?> updateStudentProfile(String nickname, HttpSession session) {
@@ -117,13 +104,11 @@ public class AuthController {
         SysStudent dbStudent = studentMapper.selectById(student.getId());
         dbStudent.setNickname(nickname.trim());
         studentMapper.updateById(dbStudent);
-        // 更新 session
         student.setNickname(nickname.trim());
         session.setAttribute("user", student);
         return Result.success("昵称修改成功");
     }
 
-    // 修改学生密码
     @ResponseBody
     @PostMapping("/api/student/password/update")
     public Result<?> updateStudentPassword(String oldPwd, String newPwd, HttpSession session) {

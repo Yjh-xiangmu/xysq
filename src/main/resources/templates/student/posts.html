@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>我的帖子 - 兴趣Share</title>
+    <title>帖子管理 - 兴趣Share</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 font-sans pt-16">
@@ -15,15 +15,15 @@
                 </div>
                 <div class="hidden md:flex space-x-8 items-center">
                     <a href="/student/index" class="text-gray-500 hover:text-indigo-600 font-medium transition px-1 py-2">社群广场</a>
+                    <a href="/student/activities" class="text-gray-500 hover:text-indigo-600 font-medium transition px-1 py-2">参与社群活动</a>
                     <a href="/student/posts" class="text-indigo-600 font-semibold border-b-2 border-indigo-600 px-1 py-2">帖子管理</a>
                 </div>
             </div>
             <div class="flex items-center space-x-5 relative">
                 <div class="group relative cursor-pointer flex items-center space-x-2">
-                    <div class="h-9 w-9 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 shadow-sm border-2 border-white"></div>
-                    <div class="hidden group-hover:block absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg py-2 border border-gray-100">
-                        <a href="/student/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">个人信息管理</a>
-                        <a href="/student/posts" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">帖子管理</a>
+                    <div class="h-9 w-9 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 shadow-sm border-2 border-white flex items-center justify-center text-white font-bold text-sm">我</div>
+                    <div class="hidden group-hover:block absolute right-0 top-full mt-1 w-32 bg-white rounded-xl shadow-lg py-2 border border-gray-100">
+                        <a href="/student/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">个人信息</a>
                         <div class="border-t border-gray-100 my-1"></div>
                         <a href="/" class="block px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium">退出登录</a>
                     </div>
@@ -33,143 +33,110 @@
     </div>
 </nav>
 
-<main class="max-w-4xl mx-auto px-4 py-8 mt-4">
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">我的帖子</h1>
-        <span id="post-count" class="text-sm text-gray-400"></span>
-    </div>
-
-    <div id="posts-container" class="space-y-4">
-        <div class="text-center text-gray-400 py-10">正在加载...</div>
-    </div>
-</main>
-
-<!-- 编辑帖子 Modal -->
-<div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
-        <h3 class="font-bold text-gray-800 text-lg mb-4">编辑帖子</h3>
-        <textarea id="edit-content" rows="6" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none text-sm text-gray-700"></textarea>
-        <div class="flex justify-end space-x-3 mt-4">
-            <button onclick="closeEdit()" class="px-5 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors">取消</button>
-            <button onclick="saveEdit()" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors shadow-sm">保存修改</button>
+<main class="max-w-4xl mx-auto px-4 py-10 mt-4">
+    <div class="flex justify-between items-end mb-8 border-b pb-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">我发布的动态</h1>
+            <p class="text-sm text-gray-500 mt-1">在这里集中管理、编辑或删除你发布的所有帖子</p>
         </div>
     </div>
-</div>
+
+    <div id="my-posts-container" class="space-y-6"></div>
+</main>
 
 <script>
-    let editingPostId = null;
+    document.addEventListener('DOMContentLoaded', loadMyPosts);
 
-    document.addEventListener('DOMContentLoaded', loadPosts);
+    function loadMyPosts() {
+        fetch('/api/student/my-posts').then(res => res.json()).then(res => {
+            if (res.code === 200) renderMyPosts(res.data);
+            else alert(res.msg);
+        });
+    }
 
     function formatTime(timeStr) {
-        if (!timeStr) return '';
         const date = new Date(timeStr);
-        const now = new Date();
-        const diff = Math.floor((now - date) / 1000);
-        if (diff < 60) return '刚刚';
-        if (diff < 3600) return Math.floor(diff / 60) + '分钟前';
-        if (diff < 86400) return Math.floor(diff / 3600) + '小时前';
-        if (diff < 86400 * 2) return '昨天';
-        if (diff < 86400 * 7) return Math.floor(diff / 86400) + '天前';
-        return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
     }
 
-    function escapeHtml(str) {
-        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
-
-    function loadPosts() {
-        fetch('/api/student/my-posts')
-            .then(r => r.json())
-            .then(res => {
-                if (res.code === 200) renderPosts(res.data);
-                else document.getElementById('posts-container').innerHTML =
-                    `<div class="text-center text-red-400 py-10">${escapeHtml(res.msg)}</div>`;
-            });
-    }
-
-    function renderPosts(posts) {
-        const container = document.getElementById('posts-container');
-        const countEl = document.getElementById('post-count');
-
+    function renderMyPosts(posts) {
+        const container = document.getElementById('my-posts-container');
         if (!posts || posts.length === 0) {
-            countEl.textContent = '';
-            container.innerHTML = '<div class="text-center text-gray-400 bg-white rounded-xl py-16 border border-gray-200">还没有发布任何帖子</div>';
+            container.innerHTML = '<div class="text-center py-20 bg-white rounded-xl border border-gray-200 text-gray-400">你还没有发布过任何帖子哦</div>';
             return;
         }
-        countEl.textContent = `共 ${posts.length} 条`;
 
-        container.innerHTML = posts.map(p => {
-            const statusBadge = p.status === 1
-                ? `<span class="text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full border border-green-100">正常</span>`
-                : `<span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full border border-gray-200">已隐藏</span>`;
-            return `
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-shadow">
-                <div class="flex items-start justify-between mb-3">
-                    <div class="flex items-center space-x-2">
-                        <a href="/student/community/${p.communityId}" class="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full hover:bg-indigo-100 transition-colors font-medium">${escapeHtml(p.communityName)}</a>
-                        ${statusBadge}
+        let html = '';
+        posts.forEach(post => {
+            const time = formatTime(post.createTime);
+            const statusHtml = post.status === 1
+                ? `<span class="bg-green-50 text-green-600 text-xs px-2 py-1 rounded">正常显示</span>`
+                : `<span class="bg-red-50 text-red-600 text-xs px-2 py-1 rounded">已被社长隐藏</span>`;
+
+            html += `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md mb-2 inline-block">发布于：${post.communityName}</span>
+                            <p class="text-xs text-gray-400 mt-1">${time} &nbsp;&nbsp; ${statusHtml}</p>
+                        </div>
+                        <div class="space-x-2">
+                            <button onclick="editPost(${post.id})" class="text-sm text-blue-600 hover:underline">编辑</button>
+                            <button onclick="deletePost(${post.id})" class="text-sm text-red-500 hover:underline">删除</button>
+                        </div>
                     </div>
-                    <span class="text-xs text-gray-400">${formatTime(p.createTime)}</span>
+
+                    <textarea id="edit-box-${post.id}" class="hidden w-full border border-indigo-300 rounded-lg p-3 text-sm focus:ring-1 focus:ring-indigo-500 mb-3" rows="3">${post.content}</textarea>
+                    <p id="content-${post.id}" class="text-gray-800 text-[15px] whitespace-pre-wrap">${post.content}</p>
+
+                    <div id="edit-actions-${post.id}" class="hidden flex justify-end space-x-2 mt-2">
+                        <button onclick="cancelEdit(${post.id})" class="px-4 py-1.5 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200">取消</button>
+                        <button onclick="savePost(${post.id})" class="px-4 py-1.5 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 shadow-sm">保存修改</button>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-gray-100 flex space-x-6 text-sm text-gray-500">
+                        <span>💬 评论: ${post.commentCount}</span>
+                        <span>👍 点赞: ${post.likeCount}</span>
+                    </div>
                 </div>
-                <p class="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap mb-4">${escapeHtml(p.content)}</p>
-                <div class="flex items-center justify-between border-t border-gray-100 pt-3">
-                    <div class="flex items-center space-x-4 text-xs text-gray-400">
-                        <span class="flex items-center space-x-1">
-                            <svg class="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
-                            <span>${p.likeCount} 赞</span>
-                        </span>
-                        <span class="flex items-center space-x-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                            <span>${p.commentCount} 评论</span>
-                        </span>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <button onclick="openEdit(${p.id}, \`${escapeHtml(p.content).replace(/`/g,'\\`')}\`)" class="text-xs text-indigo-500 hover:text-indigo-700 border border-indigo-200 hover:border-indigo-400 px-3 py-1.5 rounded-lg transition-colors font-medium">编辑</button>
-                        <button onclick="deletePost(${p.id})" class="text-xs text-red-400 hover:text-red-600 border border-red-100 hover:border-red-300 px-3 py-1.5 rounded-lg transition-colors font-medium">删除</button>
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
+                `;
+        });
+        container.innerHTML = html;
     }
 
-    function openEdit(postId, content) {
-        editingPostId = postId;
-        document.getElementById('edit-content').value = content;
-        document.getElementById('edit-modal').classList.remove('hidden');
-        document.getElementById('edit-content').focus();
+    function editPost(id) {
+        document.getElementById(`content-${id}`).classList.add('hidden');
+        document.getElementById(`edit-box-${id}`).classList.remove('hidden');
+        document.getElementById(`edit-actions-${id}`).classList.remove('hidden');
     }
 
-    function closeEdit() {
-        editingPostId = null;
-        document.getElementById('edit-modal').classList.add('hidden');
+    function cancelEdit(id) {
+        document.getElementById(`content-${id}`).classList.remove('hidden');
+        document.getElementById(`edit-box-${id}`).classList.add('hidden');
+        document.getElementById(`edit-actions-${id}`).classList.add('hidden');
     }
 
-    function saveEdit() {
-        if (!editingPostId) return;
-        const content = document.getElementById('edit-content').value.trim();
+    function savePost(id) {
+        const content = document.getElementById(`edit-box-${id}`).value.trim();
         if (!content) return alert('内容不能为空');
-        const formData = new URLSearchParams();
-        formData.append('postId', editingPostId);
-        formData.append('content', content);
-        fetch('/api/student/post/update', { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(res => {
-                if (res.code === 200) { closeEdit(); loadPosts(); }
-                else alert('❌ ' + res.msg);
-            });
+
+        const fd = new URLSearchParams();
+        fd.append('postId', id);
+        fd.append('content', content);
+
+        fetch('/api/student/post/update', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
+            if (res.code === 200) loadMyPosts();
+            else alert(res.msg);
+        });
     }
 
-    function deletePost(postId) {
-        if (!confirm('确定要删除这条帖子吗？相关评论也会一并删除。')) return;
-        const formData = new URLSearchParams();
-        formData.append('postId', postId);
-        fetch('/api/student/post/delete', { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(res => {
-                if (res.code === 200) loadPosts();
-                else alert('❌ ' + res.msg);
-            });
+    function deletePost(id) {
+        if (!confirm('确定要永久删除这条帖子吗？')) return;
+        const fd = new URLSearchParams(); fd.append('postId', id);
+        fetch('/api/student/post/delete', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
+            if (res.code === 200) loadMyPosts();
+            else alert(res.msg);
+        });
     }
 </script>
 </body>
