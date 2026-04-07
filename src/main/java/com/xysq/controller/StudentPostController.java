@@ -70,7 +70,6 @@ public class StudentPostController {
                 .eq("community_id", communityId).eq("status", 1).orderByDesc("create_time"));
         if (posts.isEmpty()) return Result.success(Collections.emptyList());
 
-        // 批量查涉及的学生 ID
         Set<Integer> studentIds = new HashSet<>();
         List<Integer> postIds = new ArrayList<>();
         for (SysPost p : posts) {
@@ -85,13 +84,11 @@ public class StudentPostController {
             if (c.getReplyToStudentId() != null) studentIds.add(c.getReplyToStudentId());
         }
 
-        // 批量查学生信息
         Map<Integer, String> studentNameMap = new HashMap<>();
         if (!studentIds.isEmpty()) {
             studentMapper.selectBatchIds(studentIds).forEach(s -> studentNameMap.put(s.getId(), s.getNickname()));
         }
 
-        // 点赞数 & 当前用户已点赞的帖子
         Map<Integer, Long> likeCountMap = new HashMap<>();
         Set<Integer> likedPostIds = new HashSet<>();
         for (Integer pid : postIds) {
@@ -104,7 +101,6 @@ public class StudentPostController {
             }
         }
 
-        // 按帖子分组评论
         Map<Integer, List<SysComment>> commentsByPost = allComments.stream()
                 .collect(Collectors.groupingBy(SysComment::getPostId));
 
@@ -122,7 +118,6 @@ public class StudentPostController {
             List<SysComment> postComments = commentsByPost.getOrDefault(post.getId(), Collections.emptyList());
             map.put("commentCount", postComments.size());
 
-            // 构建二级评论树
             List<Map<String, Object>> rootComments = new ArrayList<>();
             Map<Integer, Map<String, Object>> rootCommentMap = new HashMap<>();
             for (SysComment c : postComments) {
@@ -313,5 +308,38 @@ public class StudentPostController {
         sign.setStudentId(student.getId());
         activitySignMapper.insert(sign);
         return Result.success("报名成功！");
+    }
+
+    // 11. 全站活动大厅
+    @ResponseBody
+    @GetMapping("/api/student/activity/all")
+    public Result<List<Map<String, Object>>> getAllActivities(HttpSession session) {
+        SysStudent student = (SysStudent) session.getAttribute("user");
+
+        List<SysActivity> activities = activityMapper.selectList(
+                new QueryWrapper<SysActivity>().orderByDesc("event_time"));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SysActivity act : activities) {
+            SysCommunity community = communityMapper.selectById(act.getCommunityId());
+            long signCount = activitySignMapper.selectCount(
+                    new QueryWrapper<SysActivitySign>().eq("activity_id", act.getId()));
+            boolean isSigned = false;
+            if (student != null) {
+                isSigned = activitySignMapper.selectCount(new QueryWrapper<SysActivitySign>()
+                        .eq("activity_id", act.getId()).eq("student_id", student.getId())) > 0;
+            }
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", act.getId());
+            map.put("title", act.getTitle());
+            map.put("content", act.getContent());
+            map.put("location", act.getLocation());
+            map.put("eventTime", act.getEventTime());
+            map.put("signCount", signCount);
+            map.put("isSigned", isSigned);
+            map.put("communityName", community != null ? community.getName() : "未知社群");
+            result.add(map);
+        }
+        return Result.success(result);
     }
 }

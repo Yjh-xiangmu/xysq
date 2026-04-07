@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xysq.common.Result;
 import com.xysq.entity.*;
 import com.xysq.mapper.*;
-import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -42,7 +41,7 @@ public class PlatformAdminController {
         return Result.success(stats);
     }
 
-    // 各社群帖子数量（用于图表）
+    // 各社群帖子/成员数量（图表用）
     @GetMapping("/community/stats")
     public Result<List<Map<String, Object>>> getCommunityStats(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -63,27 +62,22 @@ public class PlatformAdminController {
     @GetMapping("/student/list")
     public Result<List<Map<String, Object>>> getStudentList(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
-        List<SysStudent> students = studentMapper.selectList(
-                new QueryWrapper<SysStudent>().orderByDesc("id"));
+        List<SysStudent> students = studentMapper.selectList(new QueryWrapper<SysStudent>().orderByDesc("id"));
         List<Map<String, Object>> list = new ArrayList<>();
         for (SysStudent s : students) {
             Map<String, Object> m = new HashMap<>();
             m.put("id", s.getId());
             m.put("studentNo", s.getStudentNo());
             m.put("nickname", s.getNickname());
-            long joinedCount = memberMapper.selectCount(
-                    new QueryWrapper<SysCommunityMember>().eq("student_id", s.getId()).eq("status", 1));
-            long postCount = postMapper.selectCount(
-                    new QueryWrapper<SysPost>().eq("student_id", s.getId()));
-            m.put("joinedCommunities", joinedCount);
-            m.put("postCount", postCount);
+            m.put("joinedCommunities", memberMapper.selectCount(
+                    new QueryWrapper<SysCommunityMember>().eq("student_id", s.getId()).eq("status", 1)));
+            m.put("postCount", postMapper.selectCount(new QueryWrapper<SysPost>().eq("student_id", s.getId())));
             m.put("status", s.getStatus() == null ? 1 : s.getStatus());
             list.add(m);
         }
         return Result.success(list);
     }
 
-    // 删除学生
     @PostMapping("/student/delete")
     public Result<?> deleteStudent(Integer studentId, HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -91,7 +85,6 @@ public class PlatformAdminController {
         return Result.success("已删除该学生账号");
     }
 
-    // 切换学生账号状态（启用/禁用）
     @PostMapping("/student/toggleStatus")
     public Result<Map<String, Object>> toggleStudentStatus(Integer studentId, HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -106,13 +99,10 @@ public class PlatformAdminController {
     }
 
     // ===================== 社长管理 =====================
-
-    // 获取所有社长列表
     @GetMapping("/admin/list")
     public Result<List<Map<String, Object>>> getAdminList(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
-        List<SysAdmin> admins = adminMapper.selectList(
-                new QueryWrapper<SysAdmin>().eq("role", 2).orderByAsc("id"));
+        List<SysAdmin> admins = adminMapper.selectList(new QueryWrapper<SysAdmin>().eq("role", 2).orderByAsc("id"));
         List<Map<String, Object>> result = new ArrayList<>();
         for (SysAdmin a : admins) {
             Map<String, Object> m = new HashMap<>();
@@ -131,14 +121,12 @@ public class PlatformAdminController {
         return Result.success(result);
     }
 
-    // 添加新社长
     @PostMapping("/admin/add")
     public Result<?> addAdmin(String username, String password, Integer communityId, HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
         if (username == null || username.trim().isEmpty()) return Result.error("用户名不能为空");
         if (password == null || password.trim().isEmpty()) return Result.error("密码不能为空");
-        SysAdmin exist = adminMapper.selectOne(
-                new QueryWrapper<SysAdmin>().eq("username", username.trim()));
+        SysAdmin exist = adminMapper.selectOne(new QueryWrapper<SysAdmin>().eq("username", username.trim()));
         if (exist != null) return Result.error("该用户名已存在");
         SysAdmin admin = new SysAdmin();
         admin.setUsername(username.trim());
@@ -149,7 +137,6 @@ public class PlatformAdminController {
         return Result.success("社长账号创建成功");
     }
 
-    // 删除社长
     @PostMapping("/admin/delete")
     public Result<?> deleteAdmin(Integer adminId, HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -160,26 +147,20 @@ public class PlatformAdminController {
         return Result.success("社长账号已删除");
     }
 
-    // 全站帖子列表（内容审核用）
+    // ===================== 帖子审核 =====================
     @GetMapping("/post/list")
     public Result<List<Map<String, Object>>> getAllPosts(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
-        List<SysPost> posts = postMapper.selectList(
-                new QueryWrapper<SysPost>().orderByDesc("create_time"));
-        List<Map<String, Object>> list = new ArrayList<>();
-
-        // 批量查社群名和学生名
+        List<SysPost> posts = postMapper.selectList(new QueryWrapper<SysPost>().orderByDesc("create_time"));
         Set<Integer> communityIds = new HashSet<>();
         Set<Integer> studentIds = new HashSet<>();
         posts.forEach(p -> { communityIds.add(p.getCommunityId()); studentIds.add(p.getStudentId()); });
-
         Map<Integer, String> communityNameMap = new HashMap<>();
         Map<Integer, String> studentNameMap = new HashMap<>();
-        if (!communityIds.isEmpty()) communityMapper.selectBatchIds(communityIds)
-                .forEach(c -> communityNameMap.put(c.getId(), c.getName()));
-        if (!studentIds.isEmpty()) studentMapper.selectBatchIds(studentIds)
-                .forEach(s -> studentNameMap.put(s.getId(), s.getNickname()));
+        if (!communityIds.isEmpty()) communityMapper.selectBatchIds(communityIds).forEach(c -> communityNameMap.put(c.getId(), c.getName()));
+        if (!studentIds.isEmpty()) studentMapper.selectBatchIds(studentIds).forEach(s -> studentNameMap.put(s.getId(), s.getNickname()));
 
+        List<Map<String, Object>> list = new ArrayList<>();
         for (SysPost p : posts) {
             Map<String, Object> m = new HashMap<>();
             m.put("id", p.getId());
@@ -193,7 +174,6 @@ public class PlatformAdminController {
         return Result.success(list);
     }
 
-    // 切换帖子状态
     @PostMapping("/post/toggleStatus")
     public Result<?> togglePostStatus(Integer postId, HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -205,19 +185,14 @@ public class PlatformAdminController {
     }
 
     // ===================== 全站公告 =====================
-
     @GetMapping("/announcement/list")
     public Result<List<Map<String, Object>>> getAnnouncementList(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
-        List<SysAnnouncement> list = announcementMapper.selectList(
-                new QueryWrapper<SysAnnouncement>().orderByDesc("create_time"));
+        List<SysAnnouncement> list = announcementMapper.selectList(new QueryWrapper<SysAnnouncement>().orderByDesc("create_time"));
         List<Map<String, Object>> result = new ArrayList<>();
         for (SysAnnouncement a : list) {
             Map<String, Object> m = new HashMap<>();
-            m.put("id", a.getId());
-            m.put("title", a.getTitle());
-            m.put("content", a.getContent());
-            m.put("createTime", a.getCreateTime());
+            m.put("id", a.getId()); m.put("title", a.getTitle()); m.put("content", a.getContent()); m.put("createTime", a.getCreateTime());
             result.add(m);
         }
         return Result.success(result);
@@ -230,9 +205,7 @@ public class PlatformAdminController {
         if (content == null || content.trim().isEmpty()) return Result.error("内容不能为空");
         SysAdmin admin = (SysAdmin) session.getAttribute("user");
         SysAnnouncement a = new SysAnnouncement();
-        a.setTitle(title.trim());
-        a.setContent(content.trim());
-        a.setAdminId(admin.getId());
+        a.setTitle(title.trim()); a.setContent(content.trim()); a.setAdminId(admin.getId());
         announcementMapper.insert(a);
         return Result.success("公告发布成功");
     }
@@ -244,14 +217,11 @@ public class PlatformAdminController {
         return Result.success("公告已删除");
     }
 
-    // ===================== 社群分类与推荐管理 =====================
-
-    // 获取所有社群（含分类和推荐状态）
+    // ===================== 社群管理（含新增/删除） =====================
     @GetMapping("/community/list")
     public Result<List<Map<String, Object>>> getCommunityList(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
-        List<SysCommunity> list = communityMapper.selectList(
-                new QueryWrapper<SysCommunity>().orderByAsc("id"));
+        List<SysCommunity> list = communityMapper.selectList(new QueryWrapper<SysCommunity>().orderByAsc("id"));
         List<Map<String, Object>> result = new ArrayList<>();
         for (SysCommunity c : list) {
             Map<String, Object> m = new HashMap<>();
@@ -259,15 +229,35 @@ public class PlatformAdminController {
             m.put("name", c.getName());
             m.put("category", c.getCategory());
             m.put("isRecommended", c.getIsRecommended() != null && c.getIsRecommended() == 1);
-            long memberCount = memberMapper.selectCount(
-                    new QueryWrapper<SysCommunityMember>().eq("community_id", c.getId()).eq("status", 1));
-            m.put("memberCount", memberCount);
+            m.put("memberCount", memberMapper.selectCount(
+                    new QueryWrapper<SysCommunityMember>().eq("community_id", c.getId()).eq("status", 1)));
             result.add(m);
         }
         return Result.success(result);
     }
 
-    // 更新社群分类
+    @PostMapping("/community/add")
+    public Result<?> addCommunity(String name, String description, HttpSession session) {
+        if (!isPlatformAdmin(session)) return Result.error("无权限");
+        if (name == null || name.trim().isEmpty()) return Result.error("社群名称不能为空");
+        long count = communityMapper.selectCount(new QueryWrapper<SysCommunity>().eq("name", name.trim()));
+        if (count > 0) return Result.error("社群名称已存在");
+        SysCommunity c = new SysCommunity();
+        c.setName(name.trim());
+        c.setDescription(description != null ? description.trim() : "");
+        c.setAvatar("https://api.dicebear.com/7.x/bottts/svg?seed=" + System.currentTimeMillis());
+        c.setIsRecommended(0);
+        communityMapper.insert(c);
+        return Result.success("社群创建成功");
+    }
+
+    @PostMapping("/community/delete")
+    public Result<?> deleteCommunity(Integer communityId, HttpSession session) {
+        if (!isPlatformAdmin(session)) return Result.error("无权限");
+        communityMapper.deleteById(communityId);
+        return Result.success("社群已删除");
+    }
+
     @PostMapping("/community/setCategory")
     public Result<?> setCommunityCategory(Integer communityId, String category, HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -278,7 +268,6 @@ public class PlatformAdminController {
         return Result.success("分类更新成功");
     }
 
-    // 切换首页推荐
     @PostMapping("/community/toggleRecommend")
     public Result<Map<String, Object>> toggleRecommend(Integer communityId, HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");

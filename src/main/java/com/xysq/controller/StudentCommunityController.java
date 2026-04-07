@@ -26,14 +26,25 @@ public class StudentCommunityController {
     @Autowired private SysCommunityMemberMapper memberMapper;
     @Autowired private SysAnnouncementMapper announcementMapper;
 
-    // 获取所有社群列表（广场）- 新增了状态判断
+    // 获取所有社群列表（广场）- 支持关键词和分类搜索
     @GetMapping("/community/list")
-    public Result<List<Map<String, Object>>> getCommunityList(HttpSession session) {
-        // 获取当前登录的学生
+    public Result<List<Map<String, Object>>> getCommunityList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
+            HttpSession session) {
+
         SysStudent student = (SysStudent) session.getAttribute("user");
         Integer studentId = (student != null) ? student.getId() : null;
 
-        List<SysCommunity> list = communityMapper.selectList(null);
+        QueryWrapper<SysCommunity> wrapper = new QueryWrapper<>();
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            wrapper.and(w -> w.like("name", keyword.trim()).or().like("description", keyword.trim()));
+        }
+        if (category != null && !category.trim().isEmpty()) {
+            wrapper.eq("category", category.trim());
+        }
+
+        List<SysCommunity> list = communityMapper.selectList(wrapper);
         List<Map<String, Object>> resultList = new ArrayList<>();
 
         for (SysCommunity c : list) {
@@ -43,7 +54,6 @@ public class StudentCommunityController {
             map.put("description", c.getDescription());
             map.put("avatar", c.getAvatar());
 
-            // 判断当前学生的加入状态：-1未申请，0审核中，1已加入，2已拒绝
             Integer joinStatus = -1;
             if (studentId != null) {
                 SysCommunityMember member = memberMapper.selectOne(new QueryWrapper<SysCommunityMember>()
@@ -62,11 +72,11 @@ public class StudentCommunityController {
         return Result.success(resultList);
     }
 
-    // 获取最新公告（最多3条）
+    // 获取最新公告（最多5条，展示给所有用户）
     @GetMapping("/announcements")
     public Result<List<Map<String, Object>>> getAnnouncements() {
         List<SysAnnouncement> list = announcementMapper.selectList(
-                new QueryWrapper<SysAnnouncement>().orderByDesc("create_time").last("LIMIT 3"));
+                new QueryWrapper<SysAnnouncement>().orderByDesc("create_time").last("LIMIT 5"));
         List<Map<String, Object>> result = new ArrayList<>();
         for (SysAnnouncement a : list) {
             Map<String, Object> m = new HashMap<>();
@@ -79,7 +89,7 @@ public class StudentCommunityController {
         return Result.success(result);
     }
 
-    // 申请加入社群 (保持不变)
+    // 申请加入社群
     @PostMapping("/community/join")
     public Result<?> joinCommunity(Integer communityId, HttpSession session) {
         SysStudent student = (SysStudent) session.getAttribute("user");

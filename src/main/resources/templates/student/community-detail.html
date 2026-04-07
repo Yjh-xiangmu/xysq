@@ -28,9 +28,23 @@
     <!-- 左侧：帖子 -->
     <div class="flex-1 min-w-0">
         <!-- 发帖框 -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
             <textarea id="postContent" rows="3" class="w-full border border-gray-300 rounded-lg p-4 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-colors" placeholder="有什么新鲜事想和大家分享？"></textarea>
-            <div class="flex justify-end mt-4">
+
+            <!-- 图片预览 -->
+            <div id="image-preview-wrap" class="hidden mt-3 relative inline-block">
+                <img id="image-preview" src="" class="max-h-48 rounded-lg border border-gray-200 object-cover">
+                <button onclick="clearPostImage()" class="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 shadow">×</button>
+            </div>
+
+            <div class="flex items-center justify-between mt-4">
+                <label class="cursor-pointer flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    添加图片
+                    <input type="file" id="postImageInput" accept="image/*" class="hidden" onchange="handlePostImage(event)">
+                </label>
                 <button onclick="publishPost()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-8 rounded-lg transition-colors shadow-sm">发 布</button>
             </div>
         </div>
@@ -62,8 +76,8 @@
         <h3 class="font-bold text-gray-800 text-lg mb-4">编辑动态</h3>
         <textarea id="edit-post-content" rows="5" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none text-sm"></textarea>
         <div class="flex justify-end space-x-3 mt-4">
-            <button onclick="closeEditPost()" class="px-5 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors">取消</button>
-            <button onclick="saveEditPost()" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors">保存修改</button>
+            <button onclick="closeEditPost()" class="px-5 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium">取消</button>
+            <button onclick="saveEditPost()" class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium">保存修改</button>
         </div>
     </div>
 </div>
@@ -73,13 +87,13 @@
     const currentStudentId = parseInt(document.getElementById('currentStudentId').value) || 0;
     let replyTargets = {};
     let editingPostId = null;
+    let pendingPostImage = '';
 
     document.addEventListener('DOMContentLoaded', () => {
         loadPosts();
         loadActivities();
     });
 
-    // ===== 相对时间 =====
     function formatTime(timeStr) {
         if (!timeStr) return '';
         const date = new Date(timeStr);
@@ -93,22 +107,44 @@
         return `${date.getMonth() + 1}-${date.getDate()}`;
     }
 
-    // ===== 发帖 =====
+    function handlePostImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        if (file.size > 3 * 1024 * 1024) { alert('图片不能超过3MB'); return; }
+        const reader = new FileReader();
+        reader.onload = e => {
+            pendingPostImage = e.target.result;
+            document.getElementById('image-preview').src = pendingPostImage;
+            document.getElementById('image-preview-wrap').classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function clearPostImage() {
+        pendingPostImage = '';
+        document.getElementById('image-preview-wrap').classList.add('hidden');
+        document.getElementById('image-preview').src = '';
+        document.getElementById('postImageInput').value = '';
+    }
+
     function publishPost() {
         const content = document.getElementById('postContent').value.trim();
         if (!content) return alert('写点什么再发布吧！');
-        const formData = new URLSearchParams();
-        formData.append('communityId', communityId);
-        formData.append('content', content);
-        fetch('/api/student/post/publish', { method: 'POST', body: formData })
+        const fd = new URLSearchParams();
+        fd.append('communityId', communityId);
+        fd.append('content', content);
+        if (pendingPostImage) fd.append('imageBase64', pendingPostImage);
+        fetch('/api/student/post/publish', { method: 'POST', body: fd })
             .then(r => r.json())
             .then(res => {
-                if (res.code === 200) { document.getElementById('postContent').value = ''; loadPosts(); }
-                else alert('❌ ' + res.msg);
+                if (res.code === 200) {
+                    document.getElementById('postContent').value = '';
+                    clearPostImage();
+                    loadPosts();
+                } else alert('❌ ' + res.msg);
             });
     }
 
-    // ===== 加载帖子 =====
     function loadPosts() {
         fetch(`/api/student/post/list?communityId=${communityId}`)
             .then(r => r.json())
@@ -125,9 +161,12 @@
     }
 
     function renderPostCard(post) {
-        const avatar = `<div class="h-10 w-10 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">${post.authorName.charAt(0)}</div>`;
+        const avatar = `<div class="h-10 w-10 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-sm flex-shrink-0">${(post.authorName || '?').charAt(0)}</div>`;
         const likedClass = post.isLiked ? 'text-red-500' : 'text-gray-400 hover:text-red-400';
         const heartFill = post.isLiked ? 'fill-current' : 'none';
+        const imageHtml = post.imageBase64
+            ? `<img src="${post.imageBase64}" class="mt-3 max-h-64 rounded-xl object-cover border border-gray-100 w-full cursor-zoom-in" onclick="window.open(this.src)">`
+            : '';
 
         let commentsHtml = '';
         if (post.comments && post.comments.length > 0) {
@@ -136,7 +175,7 @@
                 commentsHtml += `
                 <div class="px-4 py-3">
                     <div class="flex items-start space-x-2 group cursor-pointer" onclick="prepareReply(${post.id}, ${root.id}, ${root.studentId}, '${escapeHtml(root.authorName)}')">
-                        <div class="h-7 w-7 rounded-full bg-gradient-to-tr from-purple-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">${root.authorName.charAt(0)}</div>
+                        <div class="h-7 w-7 rounded-full bg-gradient-to-tr from-purple-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">${(root.authorName||'?').charAt(0)}</div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-baseline space-x-2">
                                 <span class="text-sm font-semibold text-gray-800">${escapeHtml(root.authorName)}</span>
@@ -151,7 +190,7 @@
                     root.replies.forEach(reply => {
                         commentsHtml += `
                         <div class="flex items-start space-x-2 group cursor-pointer" onclick="prepareReply(${post.id}, ${root.id}, ${reply.studentId}, '${escapeHtml(reply.authorName)}')">
-                            <div class="h-6 w-6 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">${reply.authorName.charAt(0)}</div>
+                            <div class="h-6 w-6 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">${(reply.authorName||'?').charAt(0)}</div>
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-baseline space-x-1">
                                     <span class="text-sm font-semibold text-gray-800">${escapeHtml(reply.authorName)}</span>
@@ -180,35 +219,29 @@
                     <p class="text-xs text-gray-400">${formatTime(post.createTime)}</p>
                 </div>
             </div>
-            <p class="text-gray-800 leading-relaxed whitespace-pre-wrap mb-4 text-[15px]">${escapeHtml(post.content)}</p>
-
-            <div class="flex items-center space-x-5 text-sm border-t border-gray-100 pt-3">
-                <!-- 点赞 -->
+            <p class="text-gray-800 leading-relaxed whitespace-pre-wrap text-[15px]">${escapeHtml(post.content)}</p>
+            ${imageHtml}
+            <div class="flex items-center space-x-5 text-sm border-t border-gray-100 pt-3 mt-4">
                 <button id="like-btn-${post.id}" onclick="toggleLike(${post.id})" class="flex items-center space-x-1.5 transition-colors ${likedClass}">
                     <svg class="w-5 h-5" fill="${heartFill}" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                     </svg>
                     <span id="like-count-${post.id}">${post.likeCount}</span>
                 </button>
-                <!-- 评论 -->
                 <button onclick="toggleCommentBox(${post.id})" class="flex items-center space-x-1.5 text-gray-400 hover:text-indigo-500 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
                     </svg>
                     <span>${post.commentCount} 条评论</span>
                 </button>
-                <!-- 自己的帖子：编辑/删除 -->
                 ${post.studentId === currentStudentId ? `
                 <div class="ml-auto flex items-center space-x-2">
                     <button onclick="openEditPost(${post.id}, \`${escapeHtml(post.content).replace(/`/g,'\\`')}\`)" class="text-xs text-gray-400 hover:text-indigo-500 transition-colors">编辑</button>
                     <button onclick="deleteMyPost(${post.id})" class="text-xs text-gray-400 hover:text-red-500 transition-colors">删除</button>
                 </div>` : ''}
             </div>
-
             ${commentsHtml}
-
-            <!-- 评论输入框 -->
-            <div id="comment-box-${post.id}" class="hidden mt-3 flex items-center space-x-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:border-indigo-400 focus-within:ring-1 focus-within:ring-indigo-300 transition-all">
+            <div id="comment-box-${post.id}" class="hidden mt-3 flex items-center space-x-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 focus-within:border-indigo-400 transition-all">
                 <span id="reply-badge-${post.id}" class="hidden bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap cursor-pointer hover:bg-red-100 hover:text-red-500 transition-colors" onclick="resetReply(${post.id})"></span>
                 <input type="text" id="comment-input-${post.id}" class="flex-1 bg-transparent border-none py-1 focus:ring-0 text-sm text-gray-700 placeholder-gray-400" placeholder="说说你的想法...">
                 <button onclick="submitComment(${post.id})" class="bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-1.5 rounded-lg text-sm font-medium transition-colors flex-shrink-0">发送</button>
@@ -221,11 +254,10 @@
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
-    // ===== 点赞 =====
     function toggleLike(postId) {
-        const formData = new URLSearchParams();
-        formData.append('postId', postId);
-        fetch('/api/student/post/like', { method: 'POST', body: formData })
+        const fd = new URLSearchParams();
+        fd.append('postId', postId);
+        fetch('/api/student/post/like', { method: 'POST', body: fd })
             .then(r => r.json())
             .then(res => {
                 if (res.code === 200) {
@@ -234,17 +266,16 @@
                     const svg = btn.querySelector('svg');
                     cnt.textContent = res.data.likeCount;
                     if (res.data.isLiked) {
-                        btn.className = btn.className.replace('text-gray-400 hover:text-red-400', 'text-red-500');
-                        svg.setAttribute('fill', 'currentColor');
+                        btn.className = btn.className.replace('text-gray-400 hover:text-red-400','text-red-500');
+                        svg.setAttribute('fill','currentColor');
                     } else {
-                        btn.className = btn.className.replace('text-red-500', 'text-gray-400 hover:text-red-400');
-                        svg.setAttribute('fill', 'none');
+                        btn.className = btn.className.replace('text-red-500','text-gray-400 hover:text-red-400');
+                        svg.setAttribute('fill','none');
                     }
                 }
             });
     }
 
-    // ===== 评论框 =====
     function toggleCommentBox(postId) {
         const box = document.getElementById(`comment-box-${postId}`);
         box.classList.toggle('hidden');
@@ -256,8 +287,7 @@
 
     function prepareReply(postId, parentId, targetStudentId, targetName) {
         replyTargets[postId] = { parentId, replyToStudentId: targetStudentId };
-        const box = document.getElementById(`comment-box-${postId}`);
-        box.classList.remove('hidden');
+        document.getElementById(`comment-box-${postId}`).classList.remove('hidden');
         const badge = document.getElementById(`reply-badge-${postId}`);
         badge.innerText = `回复 @${targetName}  ×`;
         badge.classList.remove('hidden');
@@ -273,16 +303,16 @@
     function submitComment(postId) {
         const content = document.getElementById(`comment-input-${postId}`).value.trim();
         if (!content) return alert('评论内容不能为空');
-        const formData = new URLSearchParams();
-        formData.append('postId', postId);
-        formData.append('content', content);
+        const fd = new URLSearchParams();
+        fd.append('postId', postId);
+        fd.append('content', content);
         if (replyTargets[postId]) {
-            formData.append('parentId', replyTargets[postId].parentId);
-            formData.append('replyToStudentId', replyTargets[postId].replyToStudentId);
+            fd.append('parentId', replyTargets[postId].parentId);
+            fd.append('replyToStudentId', replyTargets[postId].replyToStudentId);
         } else {
-            formData.append('parentId', 0);
+            fd.append('parentId', 0);
         }
-        fetch('/api/student/post/comment', { method: 'POST', body: formData })
+        fetch('/api/student/post/comment', { method: 'POST', body: fd })
             .then(r => r.json())
             .then(res => {
                 if (res.code === 200) {
@@ -293,7 +323,6 @@
             });
     }
 
-    // ===== 活动 =====
     function loadActivities() {
         fetch(`/api/student/activity/list?communityId=${communityId}`)
             .then(r => r.json())
@@ -322,12 +351,10 @@
         }).join('');
     }
 
-    // ===== 编辑帖子 =====
     function openEditPost(postId, currentContent) {
         editingPostId = postId;
-        const modal = document.getElementById('edit-post-modal');
         document.getElementById('edit-post-content').value = currentContent;
-        modal.classList.remove('hidden');
+        document.getElementById('edit-post-modal').classList.remove('hidden');
         document.getElementById('edit-post-content').focus();
     }
 
@@ -340,10 +367,10 @@
         if (!editingPostId) return;
         const content = document.getElementById('edit-post-content').value.trim();
         if (!content) return alert('内容不能为空');
-        const formData = new URLSearchParams();
-        formData.append('postId', editingPostId);
-        formData.append('content', content);
-        fetch('/api/student/post/update', { method: 'POST', body: formData })
+        const fd = new URLSearchParams();
+        fd.append('postId', editingPostId);
+        fd.append('content', content);
+        fetch('/api/student/post/update', { method: 'POST', body: fd })
             .then(r => r.json())
             .then(res => {
                 if (res.code === 200) { closeEditPost(); loadPosts(); }
@@ -351,12 +378,11 @@
             });
     }
 
-    // ===== 删除帖子 =====
     function deleteMyPost(postId) {
-        if (!confirm('确定要删除这条动态吗？相关评论也会一并删除。')) return;
-        const formData = new URLSearchParams();
-        formData.append('postId', postId);
-        fetch('/api/student/post/delete', { method: 'POST', body: formData })
+        if (!confirm('确定要删除这条动态吗？')) return;
+        const fd = new URLSearchParams();
+        fd.append('postId', postId);
+        fetch('/api/student/post/delete', { method: 'POST', body: fd })
             .then(r => r.json())
             .then(res => {
                 if (res.code === 200) loadPosts();
@@ -365,9 +391,9 @@
     }
 
     function signActivity(activityId) {
-        const formData = new URLSearchParams();
-        formData.append('activityId', activityId);
-        fetch('/api/student/activity/sign', { method: 'POST', body: formData })
+        const fd = new URLSearchParams();
+        fd.append('activityId', activityId);
+        fetch('/api/student/activity/sign', { method: 'POST', body: fd })
             .then(r => r.json())
             .then(res => {
                 if (res.code === 200) { alert('报名成功！'); loadActivities(); }
