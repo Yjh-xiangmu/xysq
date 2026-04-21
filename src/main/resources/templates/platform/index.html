@@ -8,15 +8,14 @@
 </head>
 <body class="bg-gray-100 font-sans leading-normal flex h-screen overflow-hidden">
 
-<!-- 侧边栏 -->
 <div class="bg-gray-900 shadow-xl w-64 flex flex-col flex-shrink-0">
     <div class="text-white text-xl font-bold p-5 flex items-center border-b border-gray-800">
         <span class="mr-2">⚙️</span> 平台控制台
     </div>
     <ul class="flex flex-col py-4 flex-1 text-gray-300 font-medium space-y-1">
-        <li onclick="showPanel('stats')"    id="nav-stats"    class="px-6 py-3 cursor-pointer bg-gray-800 border-l-4 border-indigo-500 text-white transition-colors">数据统计与分析</li>
-        <li onclick="showPanel('users')"    id="nav-users"    class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">用户信息管理</li>
-        <li onclick="showPanel('content')"  id="nav-content"  class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">内容审核与监管</li>
+        <li onclick="showPanel('stats')" id="nav-stats" class="px-6 py-3 cursor-pointer bg-gray-800 border-l-4 border-indigo-500 text-white transition-colors">数据统计与分析</li>
+        <li onclick="showPanel('users')" id="nav-users" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">用户信息管理</li>
+        <li onclick="showPanel('content')" id="nav-content" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">内容审核与监管</li>
         <li onclick="showPanel('community')" id="nav-community" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">社群管理</li>
         <li onclick="showPanel('announce')" id="nav-announce" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">发布全站公告</li>
     </ul>
@@ -25,7 +24,6 @@
     </div>
 </div>
 
-<!-- 主内容 -->
 <div class="flex-1 flex flex-col overflow-hidden">
     <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center z-10 border-b border-gray-100">
         <h2 id="panel-title" class="text-lg font-bold text-gray-800">数据统计与分析</h2>
@@ -36,29 +34,35 @@
     </header>
 
     <main class="flex-1 overflow-y-auto bg-gray-50 p-6">
-
-        <!-- ===== 数据统计面板 ===== -->
         <div id="panel-stats">
-            <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
                     <div class="text-3xl font-bold text-indigo-600" id="stat-students">-</div>
-                    <div class="text-sm text-gray-500 mt-1">注册学生</div>
+                    <div class="text-xs text-gray-500 mt-1">注册总数</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+                    <div class="text-3xl font-bold text-pink-500" id="stat-dau">-</div>
+                    <div class="text-xs text-gray-500 mt-1">今日活跃 (DAU)</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
+                    <div class="text-3xl font-bold text-teal-500" id="stat-mau">-</div>
+                    <div class="text-xs text-gray-500 mt-1">本月活跃 (MAU)</div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
                     <div class="text-3xl font-bold text-green-600" id="stat-communities">-</div>
-                    <div class="text-sm text-gray-500 mt-1">社群总数</div>
+                    <div class="text-xs text-gray-500 mt-1">社群总数</div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
                     <div class="text-3xl font-bold text-blue-600" id="stat-posts">-</div>
-                    <div class="text-sm text-gray-500 mt-1">发帖总数</div>
+                    <div class="text-xs text-gray-500 mt-1">发帖总数</div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
                     <div class="text-3xl font-bold text-purple-600" id="stat-activities">-</div>
-                    <div class="text-sm text-gray-500 mt-1">活动总数</div>
+                    <div class="text-xs text-gray-500 mt-1">活动总数</div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 text-center">
                     <div class="text-3xl font-bold text-orange-500" id="stat-comments">-</div>
-                    <div class="text-sm text-gray-500 mt-1">评论总数</div>
+                    <div class="text-xs text-gray-500 mt-1">评论总数</div>
                 </div>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -73,20 +77,16 @@
             </div>
         </div>
 
-        <!-- ===== 用户管理面板 ===== -->
         <div id="panel-users" class="hidden space-y-5">
             <div class="flex space-x-2 border-b border-gray-200">
-                <button onclick="switchUserTab('students')" id="utab-students"
-                        class="px-5 py-2.5 text-sm font-medium border-b-2 border-indigo-600 text-indigo-600 -mb-px transition-colors">学生账号</button>
-                <button onclick="switchUserTab('leaders')" id="utab-leaders"
-                        class="px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px transition-colors">社长管理</button>
+                <button onclick="switchUserTab('students')" id="utab-students" class="px-5 py-2.5 text-sm font-medium border-b-2 border-indigo-600 text-indigo-600 -mb-px transition-colors">学生账号</button>
+                <button onclick="switchUserTab('leaders')" id="utab-leaders" class="px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px transition-colors">社长管理</button>
             </div>
             <div id="upanel-students">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                         <h3 class="text-base font-semibold text-gray-800">学生账号列表</h3>
-                        <input type="text" id="userSearch" oninput="filterUsers()" placeholder="搜索学号或昵称..."
-                               class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-400 w-52">
+                        <input type="text" id="userSearch" oninput="filterUsers()" placeholder="搜索学号或昵称..." class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-400 w-52">
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
@@ -152,19 +152,12 @@
             </div>
         </div>
 
-        <!-- ===== 社群管理面板（新增社群 + 分类 + 推荐） ===== -->
         <div id="panel-community" class="hidden space-y-6">
-            <!-- 子标签 -->
             <div class="flex space-x-2 border-b border-gray-200">
-                <button onclick="switchCommunityTab('list')" id="ctab-list"
-                        class="px-5 py-2.5 text-sm font-medium border-b-2 border-indigo-600 text-indigo-600 -mb-px">社群列表</button>
-                <button onclick="switchCommunityTab('create')" id="ctab-create"
-                        class="px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px">创建社群</button>
-                <button onclick="switchCommunityTab('category')" id="ctab-category"
-                        class="px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px">分类与推荐</button>
+                <button onclick="switchCommunityTab('list')" id="ctab-list" class="px-5 py-2.5 text-sm font-medium border-b-2 border-indigo-600 text-indigo-600 -mb-px">社群列表</button>
+                <button onclick="switchCommunityTab('create')" id="ctab-create" class="px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px">创建社群</button>
+                <button onclick="switchCommunityTab('category')" id="ctab-category" class="px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px">分类与推荐</button>
             </div>
-
-            <!-- 社群列表 -->
             <div id="cpanel-list">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
@@ -187,8 +180,6 @@
                     </table>
                 </div>
             </div>
-
-            <!-- 创建社群 -->
             <div id="cpanel-create" class="hidden">
                 <div class="max-w-lg bg-white rounded-xl shadow-sm border border-gray-200 p-8">
                     <h3 class="text-base font-semibold text-gray-700 mb-6 pb-3 border-b border-gray-100">创建新社群</h3>
@@ -206,8 +197,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- 分类与推荐 -->
             <div id="cpanel-category" class="hidden">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
@@ -231,7 +220,6 @@
             </div>
         </div>
 
-        <!-- ===== 全站公告面板 ===== -->
         <div id="panel-announce" class="hidden">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -261,7 +249,6 @@
             </div>
         </div>
 
-        <!-- ===== 内容审核面板 ===== -->
         <div id="panel-content" class="hidden">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
@@ -292,6 +279,26 @@
     </main>
 </div>
 
+<div id="student-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 relative">
+        <button onclick="document.getElementById('student-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+        <div class="flex flex-col items-center mt-2">
+            <img id="sm-avatar" src="" class="h-20 w-20 rounded-full object-cover shadow-sm mb-4 border border-gray-100 hidden">
+            <div id="sm-avatar-fallback" class="h-20 w-20 rounded-full bg-gradient-to-tr from-indigo-400 to-purple-500 text-white flex items-center justify-center text-2xl font-bold shadow-sm mb-4 hidden"></div>
+            <h3 id="sm-nickname" class="text-lg font-bold text-gray-800"></h3>
+            <p id="sm-studentNo" class="text-sm text-gray-500 mt-1"></p>
+            <div class="w-full mt-6 space-y-3">
+                <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-700 border border-gray-100"><span class="font-medium text-gray-500 mb-1 block">个人简介</span><span id="sm-intro" class="text-gray-800"></span></div>
+                <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-700 border border-gray-100 flex items-center"><span class="mr-3 text-lg">📱</span><span id="sm-phone" class="font-medium text-gray-800"></span></div>
+                <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-700 border border-gray-100 flex items-center"><span class="mr-3 text-lg">✉️</span><span id="sm-email" class="font-medium text-gray-800"></span></div>
+                <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-700 border border-gray-100 flex items-center"><span class="mr-3 text-lg">🕒</span><span id="sm-login" class="font-medium text-gray-800"></span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     let allUsers = [];
     let chartPosts = null;
@@ -316,7 +323,6 @@
         if (name === 'announce') loadAnnouncements();
     }
 
-    // ===== 用户管理子标签 =====
     function switchUserTab(tab) {
         ['students', 'leaders'].forEach(t => {
             document.getElementById(`upanel-${t}`).classList.add('hidden');
@@ -327,7 +333,6 @@
         if (tab === 'leaders') { loadCommunitySelectOptions(); loadLeaders(); }
     }
 
-    // ===== 社群管理子标签 =====
     function switchCommunityTab(tab) {
         ['list', 'create', 'category'].forEach(t => {
             document.getElementById(`cpanel-${t}`).classList.add('hidden');
@@ -339,12 +344,13 @@
         if (tab === 'category') loadCategoryList();
     }
 
-    // ===== 数据统计 =====
     function loadStats() {
         fetch('/api/platform/stats').then(r => r.json()).then(res => {
             if (res.code === 200) {
                 const d = res.data;
                 document.getElementById('stat-students').textContent = d.studentCount;
+                document.getElementById('stat-dau').textContent = d.dau;
+                document.getElementById('stat-mau').textContent = d.mau;
                 document.getElementById('stat-communities').textContent = d.communityCount;
                 document.getElementById('stat-posts').textContent = d.postCount;
                 document.getElementById('stat-activities').textContent = d.activityCount;
@@ -371,16 +377,17 @@
         });
     }
 
-    // ===== 学生管理 =====
     function loadUsers() {
         fetch('/api/platform/student/list').then(r => r.json()).then(res => {
             if (res.code === 200) { allUsers = res.data; renderUsers(allUsers); }
         });
     }
+
     function filterUsers() {
         const kw = document.getElementById('userSearch').value.trim().toLowerCase();
         renderUsers(kw ? allUsers.filter(u => u.studentNo.toLowerCase().includes(kw) || (u.nickname||'').toLowerCase().includes(kw)) : allUsers);
     }
+
     function renderUsers(list) {
         const tbody = document.getElementById('user-list-body');
         if (!list || list.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="py-10 text-center text-sm text-gray-400">暂无数据</td></tr>'; return; }
@@ -389,37 +396,70 @@
             const toggleBtn = u.status === 1
                 ? `<button onclick="toggleStudentStatus(${u.id})" class="text-yellow-600 bg-yellow-50 hover:bg-yellow-100 px-3 py-1.5 rounded text-xs font-medium">禁用</button>`
                 : `<button onclick="toggleStudentStatus(${u.id})" class="text-green-600 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded text-xs font-medium">启用</button>`;
+            const encData = encodeURIComponent(JSON.stringify(u));
             return `<tr class="hover:bg-gray-50">
                 <td class="px-6 py-4 text-sm font-medium text-gray-900">${escapeHtml(u.studentNo)}</td>
                 <td class="px-6 py-4 text-sm text-gray-600">${u.nickname ? escapeHtml(u.nickname) : '<span class="text-gray-400">未设置</span>'}</td>
                 <td class="px-6 py-4 text-sm text-gray-500">${u.joinedCommunities} 个</td>
                 <td class="px-6 py-4 text-sm text-gray-500">${u.postCount} 篇</td>
                 <td class="px-6 py-4">${badge}</td>
-                <td class="px-6 py-4 text-right space-x-2">${toggleBtn}
+                <td class="px-6 py-4 text-right space-x-2">
+                    <button onclick="showStudentDetail('${encData}')" class="text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded text-xs font-medium">查看资料</button>
+                    ${toggleBtn}
                     <button onclick="deleteStudent(${u.id}, '${escapeHtml(u.studentNo)}')" class="text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded text-xs font-medium">删除</button>
                 </td>
             </tr>`;
         }).join('');
     }
+
+    function showStudentDetail(encData) {
+        const data = JSON.parse(decodeURIComponent(encData));
+        document.getElementById('sm-nickname').textContent = data.nickname || '匿名用户';
+        document.getElementById('sm-studentNo').textContent = '学号：' + data.studentNo;
+        document.getElementById('sm-intro').textContent = data.intro || '该用户暂未填写简介';
+        document.getElementById('sm-phone').textContent = data.phone || '未留存手机号';
+        document.getElementById('sm-email').textContent = data.email || '未留存邮箱';
+
+        let loginText = '未记录';
+        if (data.lastLoginTime) {
+            const d = new Date(data.lastLoginTime);
+            loginText = `最后登录：${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        }
+        document.getElementById('sm-login').textContent = loginText;
+
+        const avatarImg = document.getElementById('sm-avatar');
+        const avatarFallback = document.getElementById('sm-avatar-fallback');
+        if (data.avatar) {
+            avatarImg.src = data.avatar;
+            avatarImg.classList.remove('hidden');
+            avatarFallback.classList.add('hidden');
+        } else {
+            avatarFallback.textContent = (data.nickname || data.studentNo || '?').charAt(0);
+            avatarFallback.classList.remove('hidden');
+            avatarImg.classList.add('hidden');
+        }
+        document.getElementById('student-modal').classList.remove('hidden');
+    }
+
     function toggleStudentStatus(id) {
         const fd = new URLSearchParams(); fd.append('studentId', id);
         fetch('/api/platform/student/toggleStatus', { method: 'POST', body: fd }).then(r => r.json()).then(res => { if (res.code === 200) loadUsers(); });
     }
+
     function deleteStudent(id, no) {
         if (!confirm(`确定删除学号「${no}」的账号吗？`)) return;
         const fd = new URLSearchParams(); fd.append('studentId', id);
         fetch('/api/platform/student/delete', { method: 'POST', body: fd }).then(r => r.json()).then(res => { if (res.code === 200) loadUsers(); });
     }
 
-    // ===== 社长管理 =====
     function loadCommunitySelectOptions() {
         fetch('/api/platform/community/list').then(r => r.json()).then(res => {
             if (res.code !== 200) return;
             const sel = document.getElementById('leaderCommunity');
-            sel.innerHTML = '<option value="">-- 选择社群（可选）--</option>' +
-                res.data.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+            sel.innerHTML = '<option value="">-- 选择社群（可选）--</option>' + res.data.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
         });
     }
+
     function loadLeaders() {
         fetch('/api/platform/admin/list').then(r => r.json()).then(res => {
             const tbody = document.getElementById('leader-list-body');
@@ -433,6 +473,7 @@
             </tr>`).join('');
         });
     }
+
     function addLeader() {
         const username = document.getElementById('leaderUsername').value.trim();
         const password = document.getElementById('leaderPassword').value.trim();
@@ -445,24 +486,23 @@
             if (res.code === 200) { document.getElementById('leaderUsername').value = ''; document.getElementById('leaderPassword').value = ''; loadLeaders(); }
         });
     }
+
     function deleteLeader(id, username) {
         if (!confirm(`确定删除社长账号「${username}」吗？`)) return;
         const fd = new URLSearchParams(); fd.append('adminId', id);
         fetch('/api/platform/admin/delete', { method: 'POST', body: fd }).then(r => r.json()).then(res => { if (res.code === 200) loadLeaders(); });
     }
+
     function showLeaderMsg(text, isError) {
         const el = document.getElementById('leader-msg');
         el.textContent = text; el.className = isError ? 'mt-3 text-sm px-3 py-2 rounded-lg bg-red-50 text-red-600' : 'mt-3 text-sm px-3 py-2 rounded-lg bg-green-50 text-green-600';
         el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 3000);
     }
 
-    // ===== 社群列表 =====
     function loadAllCommunities() {
         fetch('/api/platform/community/list').then(r => r.json()).then(res => {
             const tbody = document.getElementById('community-list-body');
-            if (res.code !== 200 || !res.data || res.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-sm text-gray-400">暂无社群</td></tr>'; return;
-            }
+            if (res.code !== 200 || !res.data || res.data.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-sm text-gray-400">暂无社群</td></tr>'; return; }
             tbody.innerHTML = res.data.map(c => {
                 const catBadge = c.category ? `<span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-xs">${escapeHtml(c.category)}</span>` : '<span class="text-gray-400 text-xs">未分类</span>';
                 const recBadge = c.isRecommended ? `<span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs">推荐中</span>` : '<span class="text-gray-300 text-xs">—</span>';
@@ -471,22 +511,18 @@
                     <td class="px-6 py-4">${catBadge}</td>
                     <td class="px-6 py-4 text-sm text-gray-500">${c.memberCount} 人</td>
                     <td class="px-6 py-4">${recBadge}</td>
-                    <td class="px-6 py-4 text-right">
-                        <button onclick="deleteCommunity(${c.id}, '${escapeHtml(c.name)}')" class="text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded text-xs font-medium">删除</button>
-                    </td>
+                    <td class="px-6 py-4 text-right"><button onclick="deleteCommunity(${c.id}, '${escapeHtml(c.name)}')" class="text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded text-xs font-medium">删除</button></td>
                 </tr>`;
             }).join('');
         });
     }
+
     function deleteCommunity(id, name) {
         if (!confirm(`确定删除社群「${name}」吗？此操作不可恢复！`)) return;
         const fd = new URLSearchParams(); fd.append('communityId', id);
-        fetch('/api/platform/community/delete', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
-            if (res.code === 200) loadAllCommunities(); else alert('❌ ' + res.msg);
-        });
+        fetch('/api/platform/community/delete', { method: 'POST', body: fd }).then(r => r.json()).then(res => { if (res.code === 200) loadAllCommunities(); else alert('❌ ' + res.msg); });
     }
 
-    // ===== 创建社群 =====
     function createCommunity() {
         const name = document.getElementById('newCommunityName').value.trim();
         const desc = document.getElementById('newCommunityDesc').value.trim();
@@ -494,28 +530,21 @@
         const fd = new URLSearchParams(); fd.append('name', name); fd.append('description', desc);
         fetch('/api/platform/community/add', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
             showCreateCommunityMsg(res.msg, res.code !== 200);
-            if (res.code === 200) {
-                document.getElementById('newCommunityName').value = '';
-                document.getElementById('newCommunityDesc').value = '';
-                // 创建后同步刷新社长绑定下拉框
-                setTimeout(() => loadCommunitySelectOptions(), 500);
-            }
+            if (res.code === 200) { document.getElementById('newCommunityName').value = ''; document.getElementById('newCommunityDesc').value = ''; setTimeout(() => loadCommunitySelectOptions(), 500); }
         });
     }
+
     function showCreateCommunityMsg(text, isError) {
         const el = document.getElementById('create-community-msg');
         el.textContent = text; el.className = isError ? 'text-sm px-3 py-2 rounded-lg bg-red-50 text-red-600' : 'text-sm px-3 py-2 rounded-lg bg-green-50 text-green-600';
         el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 3000);
     }
 
-    // ===== 分类与推荐 =====
     const CATEGORY_OPTIONS = ['音乐', '科技', '摄影', '游戏', '体育', '艺术', '学习', '生活', '其他'];
     function loadCategoryList() {
         fetch('/api/platform/community/list').then(r => r.json()).then(res => {
             const tbody = document.getElementById('category-list-body');
-            if (res.code !== 200 || !res.data || res.data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-sm text-gray-400">暂无社群</td></tr>'; return;
-            }
+            if (res.code !== 200 || !res.data || res.data.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-sm text-gray-400">暂无社群</td></tr>'; return; }
             tbody.innerHTML = res.data.map(c => {
                 const catBadge = c.category ? `<span class="px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-medium">${escapeHtml(c.category)}</span>` : '<span class="text-xs text-gray-400">未分类</span>';
                 const options = CATEGORY_OPTIONS.map(o => `<option value="${o}" ${c.category===o?'selected':''}>${o}</option>`).join('');
@@ -527,9 +556,7 @@
                     <td class="px-6 py-4">${catBadge}</td>
                     <td class="px-6 py-4 text-right">
                         <div class="flex items-center justify-end space-x-2">
-                            <select id="cat-select-${c.id}" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-indigo-400">
-                                <option value="">-- 分类 --</option>${options}
-                            </select>
+                            <select id="cat-select-${c.id}" class="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:border-indigo-400"><option value="">-- 分类 --</option>${options}</select>
                             <button onclick="setCategory(${c.id})" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded text-xs font-medium">保存</button>
                             <button onclick="toggleRecommend(${c.id})" class="px-3 py-1.5 rounded text-xs font-medium transition-colors ${recBtnClass}">${recBtnText}</button>
                         </div>
@@ -538,20 +565,22 @@
             }).join('');
         });
     }
+
     function setCategory(communityId) {
         const val = document.getElementById(`cat-select-${communityId}`).value;
         const fd = new URLSearchParams(); fd.append('communityId', communityId); fd.append('category', val);
         fetch('/api/platform/community/setCategory', { method: 'POST', body: fd }).then(r => r.json()).then(res => { if (res.code === 200) loadCategoryList(); else alert('❌ ' + res.msg); });
     }
+
     function toggleRecommend(communityId) {
         const fd = new URLSearchParams(); fd.append('communityId', communityId);
         fetch('/api/platform/community/toggleRecommend', { method: 'POST', body: fd }).then(r => r.json()).then(res => { if (res.code === 200) loadCategoryList(); else alert('❌ ' + res.msg); });
     }
 
-    // ===== 内容审核 =====
     function loadAllPosts() {
         fetch('/api/platform/post/list').then(r => r.json()).then(res => { if (res.code === 200) renderPosts(res.data); });
     }
+
     function renderPosts(list) {
         const tbody = document.getElementById('content-list-body');
         if (!list || list.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="py-10 text-center text-sm text-gray-400">暂无帖子</td></tr>'; return; }
@@ -562,23 +591,24 @@
             const d = new Date(p.createTime);
             const t = `${d.getMonth()+1}-${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
             const preview = escapeHtml(p.content.length > 35 ? p.content.substring(0,35) + '...' : p.content);
+            const imgHtml = p.imageUrl ? `<a href="${p.imageUrl}" target="_blank" class="inline-flex items-center ml-1 px-1.5 py-0.5 rounded text-xs bg-indigo-50 text-indigo-500 hover:bg-indigo-100 transition-colors">查看附图</a>` : '';
             return `<tr class="hover:bg-gray-50">
                 <td class="px-6 py-3 text-xs text-gray-400">#${p.id}</td>
                 <td class="px-6 py-3 text-sm text-gray-600">${escapeHtml(p.communityName)}</td>
                 <td class="px-6 py-3 text-sm font-medium text-gray-800">${escapeHtml(p.authorName)}</td>
-                <td class="px-6 py-3 text-sm text-gray-600">${preview}</td>
+                <td class="px-6 py-3 text-sm text-gray-600">${preview} ${imgHtml}</td>
                 <td class="px-6 py-3">${badge}</td>
                 <td class="px-6 py-3 text-xs text-gray-400 whitespace-nowrap">${t}</td>
                 <td class="px-6 py-3 text-right"><button onclick="togglePost(${p.id})" class="px-3 py-1 rounded text-xs font-medium ${btnClass}">${btnLabel}</button></td>
             </tr>`;
         }).join('');
     }
+
     function togglePost(postId) {
         const fd = new URLSearchParams(); fd.append('postId', postId);
         fetch('/api/platform/post/toggleStatus', { method: 'POST', body: fd }).then(r => r.json()).then(res => { if (res.code === 200) loadAllPosts(); });
     }
 
-    // ===== 全站公告 =====
     function loadAnnouncements() {
         fetch('/api/platform/announcement/list').then(r => r.json()).then(res => {
             const el = document.getElementById('ann-list');
@@ -598,6 +628,7 @@
             }).join('');
         });
     }
+
     function publishAnnouncement() {
         const title = document.getElementById('annTitle').value.trim();
         const content = document.getElementById('annContent').value.trim();
@@ -608,20 +639,20 @@
             if (res.code === 200) { document.getElementById('annTitle').value = ''; document.getElementById('annContent').value = ''; loadAnnouncements(); }
         });
     }
+
     function deleteAnnouncement(id) {
         if (!confirm('确定删除该公告吗？')) return;
         const fd = new URLSearchParams(); fd.append('id', id);
         fetch('/api/platform/announcement/delete', { method: 'POST', body: fd }).then(r => r.json()).then(res => { if (res.code === 200) loadAnnouncements(); });
     }
+
     function showAnnMsg(text, isError) {
         const el = document.getElementById('ann-msg');
         el.textContent = text; el.className = isError ? 'text-sm px-3 py-2 rounded-lg bg-red-50 text-red-600' : 'text-sm px-3 py-2 rounded-lg bg-green-50 text-green-600';
         el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 3000);
     }
 
-    function escapeHtml(str) {
-        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
+    function escapeHtml(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     document.addEventListener('DOMContentLoaded', loadStats);
 </script>

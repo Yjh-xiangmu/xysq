@@ -21,7 +21,9 @@
             </div>
             <div class="flex items-center space-x-5 relative">
                 <div class="group relative cursor-pointer flex items-center space-x-2">
-                    <div class="h-9 w-9 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 shadow-sm border-2 border-white flex items-center justify-center text-white font-bold text-sm">我</div>
+                    <img id="navAvatar" src="" class="h-9 w-9 rounded-full object-cover shadow-sm border border-gray-200 hidden">
+                    <div id="navAvatarFallback" class="h-9 w-9 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 shadow-sm border-2 border-white flex items-center justify-center text-white font-bold text-sm">我</div>
+
                     <div class="hidden group-hover:block absolute right-0 top-full mt-1 w-32 bg-white rounded-xl shadow-lg py-2 border border-gray-100">
                         <a href="/student/profile" class="block px-4 py-2 text-sm text-indigo-600 bg-indigo-50 font-medium">个人信息</a>
                         <div class="border-t border-gray-100 my-1"></div>
@@ -35,14 +37,11 @@
 
 <main class="max-w-lg mx-auto px-4 py-10 mt-4">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <!-- 头部：头像展示区 -->
         <div class="bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-10 text-center relative">
-            <!-- 头像点击上传 -->
             <div class="relative inline-block group cursor-pointer" onclick="document.getElementById('avatarInput').click()">
                 <div id="avatarDisplay" class="h-24 w-24 rounded-full bg-white/30 flex items-center justify-center text-white text-3xl font-bold mx-auto border-4 border-white/60 overflow-hidden shadow-lg">
                     <span id="avatarLetter">?</span>
                 </div>
-                <!-- 悬浮上传提示 -->
                 <div class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <div class="text-center text-white">
                         <svg class="w-6 h-6 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,33 +52,49 @@
                     </div>
                 </div>
             </div>
-            <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="handleAvatarChange(event)">
+            <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="previewAvatar(event)">
             <h2 class="text-white text-xl font-bold mt-4" id="nicknameDisplay">加载中...</h2>
             <p class="text-indigo-200 text-sm mt-1" id="studentNoDisplay"></p>
-            <p class="text-indigo-300 text-xs mt-1">点击头像可更换</p>
+            <p class="text-indigo-300 text-xs mt-1">点击头像选择新图片，保存资料后生效</p>
         </div>
 
         <div class="p-8 space-y-8">
-            <!-- 修改昵称 -->
             <div>
                 <h3 class="text-base font-semibold text-gray-700 mb-4 flex items-center">
-                    <span class="w-1 h-4 bg-indigo-500 rounded mr-2"></span>修改昵称
+                    <span class="w-1 h-4 bg-indigo-500 rounded mr-2"></span>修改基本资料
                 </h3>
-                <div class="space-y-3">
-                    <input type="text" id="newNickname" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" placeholder="输入新昵称">
-                    <button onclick="updateNickname()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg font-medium transition-colors shadow-sm">保存昵称</button>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">昵称</label>
+                        <input type="text" id="newNickname" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">个人简介</label>
+                        <textarea id="newIntro" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors resize-none"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">联系电话</label>
+                        <input type="tel" id="newPhone" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">邮箱地址</label>
+                        <input type="email" id="newEmail" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+                    </div>
+
+                    <button onclick="updateProfile()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg font-medium transition-colors shadow-sm mt-2">保存所有资料</button>
                 </div>
             </div>
+
             <div class="border-t border-gray-100"></div>
-            <!-- 修改密码 -->
+
             <div>
                 <h3 class="text-base font-semibold text-gray-700 mb-4 flex items-center">
                     <span class="w-1 h-4 bg-indigo-500 rounded mr-2"></span>修改密码
                 </h3>
                 <div class="space-y-3">
-                    <input type="password" id="oldPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" placeholder="当前密码">
-                    <input type="password" id="newPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" placeholder="新密码（至少6位）">
-                    <input type="password" id="confirmPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" placeholder="确认新密码">
+                    <input type="password" id="oldPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" placeholder="当前密码">
+                    <input type="password" id="newPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" placeholder="新密码（至少6位）">
+                    <input type="password" id="confirmPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" placeholder="确认新密码">
                     <button onclick="updatePassword()" class="w-full bg-gray-700 hover:bg-gray-800 text-white py-2.5 rounded-lg font-medium transition-colors shadow-sm">确认修改密码</button>
                 </div>
             </div>
@@ -88,22 +103,26 @@
 </main>
 
 <script>
-    const AVATAR_KEY = 'student_avatar_';
-    let currentStudentNo = '';
-
     document.addEventListener('DOMContentLoaded', () => {
         fetch('/api/student/profile').then(r => r.json()).then(res => {
             if (res.code === 200) {
                 const u = res.data;
-                currentStudentNo = u.studentNo;
                 document.getElementById('nicknameDisplay').textContent = u.nickname || u.studentNo;
                 document.getElementById('studentNoDisplay').textContent = '学号：' + u.studentNo;
-                document.getElementById('newNickname').value = u.nickname || '';
 
-                // 加载保存的头像
-                const savedAvatar = localStorage.getItem(AVATAR_KEY + u.studentNo);
-                if (savedAvatar) {
-                    setAvatarImage(savedAvatar);
+                // 填充表单
+                document.getElementById('newNickname').value = u.nickname || '';
+                document.getElementById('newIntro').value = u.intro || '';
+                document.getElementById('newPhone').value = u.phone || '';
+                document.getElementById('newEmail').value = u.email || '';
+
+                // 加载头像
+                if (u.avatar) {
+                    setAvatarDisplay(u.avatar);
+                    // 顺便把导航栏的头像也显示出来
+                    document.getElementById('navAvatar').src = u.avatar;
+                    document.getElementById('navAvatar').classList.remove('hidden');
+                    document.getElementById('navAvatarFallback').classList.add('hidden');
                 } else {
                     document.getElementById('avatarLetter').textContent = (u.nickname || u.studentNo).charAt(0);
                 }
@@ -111,44 +130,37 @@
         });
     });
 
-    function handleAvatarChange(event) {
+    function setAvatarDisplay(src) {
+        const display = document.getElementById('avatarDisplay');
+        display.innerHTML = `<img src="${src}" alt="头像" class="w-full h-full object-cover rounded-full">`;
+    }
+
+    function previewAvatar(event) {
         const file = event.target.files[0];
         if (!file) return;
         if (file.size > 2 * 1024 * 1024) { alert('图片不能超过 2MB'); return; }
-
         const reader = new FileReader();
         reader.onload = function(e) {
-            // 压缩图片到 200x200
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                canvas.width = 200; canvas.height = 200;
-                const ctx = canvas.getContext('2d');
-                // 居中裁剪
-                const size = Math.min(img.width, img.height);
-                const sx = (img.width - size) / 2;
-                const sy = (img.height - size) / 2;
-                ctx.drawImage(img, sx, sy, size, size, 0, 0, 200, 200);
-                const base64 = canvas.toDataURL('image/jpeg', 0.8);
-                // 存到 localStorage
-                localStorage.setItem(AVATAR_KEY + currentStudentNo, base64);
-                setAvatarImage(base64);
-                alert('头像更新成功！');
-            };
-            img.src = e.target.result;
+            setAvatarDisplay(e.target.result);
         };
         reader.readAsDataURL(file);
     }
 
-    function setAvatarImage(base64) {
-        const display = document.getElementById('avatarDisplay');
-        display.innerHTML = `<img src="${base64}" alt="头像" class="w-full h-full object-cover rounded-full">`;
-    }
-
-    function updateNickname() {
+    function updateProfile() {
         const nickname = document.getElementById('newNickname').value.trim();
         if (!nickname) return alert('昵称不能为空');
-        const fd = new URLSearchParams(); fd.append('nickname', nickname);
+
+        const fd = new FormData();
+        fd.append('nickname', nickname);
+        fd.append('intro', document.getElementById('newIntro').value.trim());
+        fd.append('phone', document.getElementById('newPhone').value.trim());
+        fd.append('email', document.getElementById('newEmail').value.trim());
+
+        const fileInput = document.getElementById('avatarInput');
+        if (fileInput.files.length > 0) {
+            fd.append('avatarFile', fileInput.files[0]);
+        }
+
         fetch('/api/student/profile/update', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
             alert(res.msg);
             if (res.code === 200) location.reload();
@@ -162,7 +174,11 @@
         if (!o || !n || !c) return alert('请填写所有密码字段');
         if (n !== c) return alert('两次新密码不一致');
         if (n.length < 6) return alert('新密码不能少于6位');
-        const fd = new URLSearchParams(); fd.append('oldPwd', o); fd.append('newPwd', n);
+
+        const fd = new URLSearchParams();
+        fd.append('oldPwd', o);
+        fd.append('newPwd', n);
+
         fetch('/api/student/password/update', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
             alert(res.msg);
             if (res.code === 200) location.href = '/';

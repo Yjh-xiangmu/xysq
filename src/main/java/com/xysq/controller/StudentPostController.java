@@ -9,7 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,7 +27,6 @@ public class StudentPostController {
     @Autowired private SysPostLikeMapper postLikeMapper;
     @Autowired private SysCommunityMapper communityMapper;
 
-    // 1. 社群详情页跳转
     @GetMapping("/student/community/{id}")
     public String communityDetail(@PathVariable("id") Integer communityId, Model model, HttpSession session) {
         Object userObj = session.getAttribute("user");
@@ -39,26 +40,45 @@ public class StudentPostController {
         return "student/community-detail";
     }
 
-    // 2. 发布帖子
+    // 发布帖子：改用 MultipartFile 接收图片
     @ResponseBody
     @PostMapping("/api/student/post/publish")
-    public Result<?> publishPost(Integer communityId, String content, HttpSession session) {
+    public Result<?> publishPost(Integer communityId, String content,
+                                 @RequestParam(value = "image", required = false) MultipartFile image,
+                                 HttpSession session) {
         Object userObj = session.getAttribute("user");
         if (!(userObj instanceof SysStudent)) return Result.error("请先登录学生账号");
         SysStudent student = (SysStudent) userObj;
+
         SysCommunityMember member = memberMapper.selectOne(new QueryWrapper<SysCommunityMember>()
                 .eq("community_id", communityId).eq("student_id", student.getId()).eq("status", 1));
         if (member == null) return Result.error("您不是该社群成员，无法发帖");
+
         SysPost post = new SysPost();
         post.setCommunityId(communityId);
         post.setStudentId(student.getId());
         post.setContent(content);
+
+        // 处理图片保存
+        if (image != null && !image.isEmpty()) {
+            try {
+                String fileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
+                // 这里的路径就是你刚才创建的文件夹
+                String uploadPath = System.getProperty("user.dir") + "/uploads/posts/";
+                File dest = new File(uploadPath + fileName);
+                image.transferTo(dest);
+                // 存入数据库的相对路径
+                post.setImageUrl("/uploads/posts/" + fileName);
+            } catch (Exception e) {
+                return Result.error("图片上传失败");
+            }
+        }
+
         post.setStatus(1);
         postMapper.insert(post);
         return Result.success("发布成功！");
     }
 
-    // 3. 获取帖子列表（批量查询，含点赞/评论数）
     @ResponseBody
     @GetMapping("/api/student/post/list")
     public Result<List<Map<String, Object>>> getPostList(Integer communityId, HttpSession session) {
@@ -85,8 +105,12 @@ public class StudentPostController {
         }
 
         Map<Integer, String> studentNameMap = new HashMap<>();
+        Map<Integer, String> studentAvatarMap = new HashMap<>(); // 存头像
         if (!studentIds.isEmpty()) {
-            studentMapper.selectBatchIds(studentIds).forEach(s -> studentNameMap.put(s.getId(), s.getNickname()));
+            studentMapper.selectBatchIds(studentIds).forEach(s -> {
+                studentNameMap.put(s.getId(), s.getNickname());
+                studentAvatarMap.put(s.getId(), s.getAvatar());
+            });
         }
 
         Map<Integer, Long> likeCountMap = new HashMap<>();
@@ -109,8 +133,10 @@ public class StudentPostController {
             Map<String, Object> map = new HashMap<>();
             map.put("id", post.getId());
             map.put("content", post.getContent());
+            map.put("imageUrl", post.getImageUrl());
             map.put("createTime", post.getCreateTime());
             map.put("authorName", studentNameMap.getOrDefault(post.getStudentId(), "匿名用户"));
+            map.put("authorAvatar", studentAvatarMap.get(post.getStudentId())); // 发帖人头像
             map.put("studentId", post.getStudentId());
             map.put("likeCount", likeCountMap.getOrDefault(post.getId(), 0L));
             map.put("isLiked", likedPostIds.contains(post.getId()));
@@ -128,6 +154,7 @@ public class StudentPostController {
                     cMap.put("content", c.getContent());
                     cMap.put("createTime", c.getCreateTime());
                     cMap.put("authorName", studentNameMap.getOrDefault(c.getStudentId(), "匿名"));
+                    cMap.put("authorAvatar", studentAvatarMap.get(c.getStudentId())); // 评论人头像
                     cMap.put("replies", new ArrayList<Map<String, Object>>());
                     rootComments.add(cMap);
                     rootCommentMap.put(c.getId(), cMap);
@@ -143,6 +170,7 @@ public class StudentPostController {
                         replyMap.put("content", c.getContent());
                         replyMap.put("createTime", c.getCreateTime());
                         replyMap.put("authorName", studentNameMap.getOrDefault(c.getStudentId(), "匿名"));
+                        replyMap.put("authorAvatar", studentAvatarMap.get(c.getStudentId())); // 回复人头像
                         replyMap.put("replyToName", studentNameMap.getOrDefault(c.getReplyToStudentId(), "匿名"));
                         @SuppressWarnings("unchecked")
                         List<Map<String, Object>> replies = (List<Map<String, Object>>) parentMap.get("replies");
@@ -156,7 +184,7 @@ public class StudentPostController {
         return Result.success(result);
     }
 
-    // 4. 发表评论
+    // 后面的点赞、报名、评论等方法不需要修改，直接保留即可
     @ResponseBody
     @PostMapping("/api/student/post/comment")
     public Result<?> addComment(Integer postId, String content,
@@ -176,7 +204,6 @@ public class StudentPostController {
         return Result.success("评论成功！");
     }
 
-    // 5. 点赞 / 取消点赞
     @ResponseBody
     @PostMapping("/api/student/post/like")
     public Result<Map<String, Object>> likePost(Integer postId, HttpSession session) {
@@ -205,7 +232,6 @@ public class StudentPostController {
         return Result.success(data);
     }
 
-    // 6. 获取社群活动列表
     @ResponseBody
     @GetMapping("/api/student/activity/list")
     public Result<List<Map<String, Object>>> getActivityList(Integer communityId, HttpSession session) {
@@ -234,7 +260,6 @@ public class StudentPostController {
         return Result.success(result);
     }
 
-    // 7. 获取我的所有帖子
     @ResponseBody
     @GetMapping("/api/student/my-posts")
     public Result<List<Map<String, Object>>> getMyPosts(HttpSession session) {
@@ -253,6 +278,7 @@ public class StudentPostController {
             m.put("id", p.getId());
             m.put("content", p.getContent());
             m.put("status", p.getStatus());
+            m.put("imageUrl", p.getImageUrl());
             m.put("createTime", p.getCreateTime());
             m.put("communityName", community != null ? community.getName() : "已解散社群");
             m.put("communityId", p.getCommunityId());
@@ -263,7 +289,6 @@ public class StudentPostController {
         return Result.success(result);
     }
 
-    // 8. 修改自己的帖子
     @ResponseBody
     @PostMapping("/api/student/post/update")
     public Result<?> updatePost(Integer postId, String content, HttpSession session) {
@@ -278,7 +303,6 @@ public class StudentPostController {
         return Result.success("修改成功");
     }
 
-    // 9. 删除自己的帖子
     @ResponseBody
     @PostMapping("/api/student/post/delete")
     public Result<?> deletePost(Integer postId, HttpSession session) {
@@ -293,7 +317,6 @@ public class StudentPostController {
         return Result.success("删除成功");
     }
 
-    // 10. 报名活动
     @ResponseBody
     @PostMapping("/api/student/activity/sign")
     public Result<?> signActivity(Integer activityId, HttpSession session) {
@@ -310,7 +333,6 @@ public class StudentPostController {
         return Result.success("报名成功！");
     }
 
-    // 11. 全站活动大厅
     @ResponseBody
     @GetMapping("/api/student/activity/all")
     public Result<List<Map<String, Object>>> getAllActivities(HttpSession session) {

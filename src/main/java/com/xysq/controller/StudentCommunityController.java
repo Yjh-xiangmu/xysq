@@ -112,4 +112,13 @@ public class StudentCommunityController {
 
         return Result.success("申请已提交，等待社群管理员审核");
     }
+    // 退出社群
+    @PostMapping("/community/quit")
+    public Result<?> quitCommunity(Integer communityId, HttpSession session) {
+        SysStudent student = (SysStudent) session.getAttribute("user");
+        if (student == null) return Result.error("请先登录");
+        memberMapper.delete(new QueryWrapper<SysCommunityMember>()
+                .eq("community_id", communityId).eq("student_id", student.getId()));
+        return Result.success("已退出该社群");
+    }
 }

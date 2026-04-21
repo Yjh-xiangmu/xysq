@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 
 @RestController
@@ -28,7 +30,6 @@ public class PlatformAdminController {
         return obj instanceof SysAdmin admin && admin.getRole() == 1;
     }
 
-    // 总体统计数据
     @GetMapping("/stats")
     public Result<Map<String, Object>> getStats(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -38,10 +39,20 @@ public class PlatformAdminController {
         stats.put("postCount", postMapper.selectCount(null));
         stats.put("activityCount", activityMapper.selectCount(null));
         stats.put("commentCount", commentMapper.selectCount(null));
+
+        LocalDate today = LocalDate.now();
+        Date startOfDay = Date.from(today.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        Date startOfMonth = Date.from(today.withDayOfMonth(1).atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+        long dau = studentMapper.selectCount(new QueryWrapper<SysStudent>().ge("last_login_time", startOfDay));
+        long mau = studentMapper.selectCount(new QueryWrapper<SysStudent>().ge("last_login_time", startOfMonth));
+
+        stats.put("dau", dau);
+        stats.put("mau", mau);
+
         return Result.success(stats);
     }
 
-    // 各社群帖子/成员数量（图表用）
     @GetMapping("/community/stats")
     public Result<List<Map<String, Object>>> getCommunityStats(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -58,7 +69,6 @@ public class PlatformAdminController {
         return Result.success(list);
     }
 
-    // 学生列表
     @GetMapping("/student/list")
     public Result<List<Map<String, Object>>> getStudentList(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -73,6 +83,11 @@ public class PlatformAdminController {
                     new QueryWrapper<SysCommunityMember>().eq("student_id", s.getId()).eq("status", 1)));
             m.put("postCount", postMapper.selectCount(new QueryWrapper<SysPost>().eq("student_id", s.getId())));
             m.put("status", s.getStatus() == null ? 1 : s.getStatus());
+            m.put("avatar", s.getAvatar());
+            m.put("intro", s.getIntro());
+            m.put("phone", s.getPhone());
+            m.put("email", s.getEmail());
+            m.put("lastLoginTime", s.getLastLoginTime());
             list.add(m);
         }
         return Result.success(list);
@@ -98,7 +113,6 @@ public class PlatformAdminController {
         return Result.success(data);
     }
 
-    // ===================== 社长管理 =====================
     @GetMapping("/admin/list")
     public Result<List<Map<String, Object>>> getAdminList(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -147,7 +161,6 @@ public class PlatformAdminController {
         return Result.success("社长账号已删除");
     }
 
-    // ===================== 帖子审核 =====================
     @GetMapping("/post/list")
     public Result<List<Map<String, Object>>> getAllPosts(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -169,6 +182,7 @@ public class PlatformAdminController {
             m.put("createTime", p.getCreateTime());
             m.put("communityName", communityNameMap.getOrDefault(p.getCommunityId(), "未知社群"));
             m.put("authorName", studentNameMap.getOrDefault(p.getStudentId(), "匿名"));
+            m.put("imageUrl", p.getImageUrl());
             list.add(m);
         }
         return Result.success(list);
@@ -184,7 +198,6 @@ public class PlatformAdminController {
         return Result.success(post.getStatus() == 1 ? "帖子已恢复显示" : "帖子已隐藏");
     }
 
-    // ===================== 全站公告 =====================
     @GetMapping("/announcement/list")
     public Result<List<Map<String, Object>>> getAnnouncementList(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
@@ -217,7 +230,6 @@ public class PlatformAdminController {
         return Result.success("公告已删除");
     }
 
-    // ===================== 社群管理（含新增/删除） =====================
     @GetMapping("/community/list")
     public Result<List<Map<String, Object>>> getCommunityList(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");

@@ -5,7 +5,6 @@
     <title>校园兴趣社区分享平台 - 登录</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 现代磨砂与渐变背景 */
         body {
             background-color: #f3f4f6;
             background-image: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
@@ -15,14 +14,12 @@
             justify-content: center;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-        /* 卡片精细化阴影与圆角 */
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(12px);
             border-radius: 1.5rem;
             box-shadow: 0 20px 40px -15px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.2) inset;
         }
-        /* 现代输入框交互 */
         .input-modern {
             width: 100%;
             padding: 0.875rem 1.25rem;
@@ -38,7 +35,6 @@
             border-color: #6366f1;
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         }
-        /* 角色选择器优化 */
         select.input-modern {
             appearance: none;
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
@@ -81,20 +77,33 @@
         </div>
     </div>
 
-    <div id="registerForm" class="hidden-form space-y-5">
+    <div id="registerForm" class="hidden-form space-y-4">
         <div>
             <input type="text" id="regStudentNo" class="input-modern" placeholder="真实学号 (必填)">
+        </div>
+        <div>
+            <input type="password" id="regPassword" class="input-modern" placeholder="设置密码 (必填)">
         </div>
         <div>
             <input type="text" id="regNickname" class="input-modern" placeholder="社区昵称 (必填)">
         </div>
         <div>
-            <input type="password" id="regPassword" class="input-modern" placeholder="设置密码">
+            <input type="text" id="regIntro" class="input-modern" placeholder="个人简介 (选填)">
         </div>
-        <button onclick="doRegister()" class="w-full py-3.5 px-4 rounded-xl shadow-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all duration-200">
+        <div>
+            <input type="tel" id="regPhone" class="input-modern" placeholder="手机号 (选填)">
+        </div>
+        <div>
+            <input type="email" id="regEmail" class="input-modern" placeholder="邮箱 (选填)">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1 ml-1">上传头像 (选填)</label>
+            <input type="file" id="regAvatar" accept="image/*" class="input-modern" style="padding: 0.5rem 1.25rem;">
+        </div>
+        <button onclick="doRegister()" class="w-full py-3.5 px-4 rounded-xl shadow-md text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all duration-200 mt-2">
             创建账号
         </button>
-        <div class="text-center mt-6">
+        <div class="text-center mt-4">
             <a href="javascript:void(0)" onclick="toggleForm()" class="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">← 返回登录</a>
         </div>
     </div>
@@ -131,10 +140,26 @@
     }
 
     function doRegister() {
-        const formData = new URLSearchParams();
-        formData.append('studentNo', document.getElementById('regStudentNo').value);
-        formData.append('nickname', document.getElementById('regNickname').value);
-        formData.append('password', document.getElementById('regPassword').value);
+        const studentNo = document.getElementById('regStudentNo').value.trim();
+        const nickname = document.getElementById('regNickname').value.trim();
+        const password = document.getElementById('regPassword').value.trim();
+
+        if (!studentNo || !nickname || !password) {
+            return alert("学号、密码和昵称为必填项！");
+        }
+
+        const formData = new FormData(); // 用 FormData 发送文件和数据
+        formData.append('studentNo', studentNo);
+        formData.append('password', password);
+        formData.append('nickname', nickname);
+        formData.append('intro', document.getElementById('regIntro').value.trim());
+        formData.append('phone', document.getElementById('regPhone').value.trim());
+        formData.append('email', document.getElementById('regEmail').value.trim());
+
+        const fileInput = document.getElementById('regAvatar');
+        if (fileInput.files.length > 0) {
+            formData.append('avatarFile', fileInput.files[0]);
+        }
 
         fetch('/api/register', { method: 'POST', body: formData })
             .then(res => res.json())

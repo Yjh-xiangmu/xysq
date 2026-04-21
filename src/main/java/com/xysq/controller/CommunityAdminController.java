@@ -93,6 +93,11 @@ public class CommunityAdminController {
                 m.put("studentNo", s.getStudentNo());
                 m.put("nickname", s.getNickname());
                 m.put("joinTime", r.getJoinTime());
+                // 携带详细信息供社长端查看
+                m.put("avatar", s.getAvatar());
+                m.put("phone", s.getPhone());
+                m.put("email", s.getEmail());
+                m.put("intro", s.getIntro());
                 list.add(m);
             }
         }

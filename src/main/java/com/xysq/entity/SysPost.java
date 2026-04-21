@@ -14,4 +14,5 @@ public class SysPost {
     private String content;
     private Integer status; // 0隐藏 1正常
     private Date createTime;
+    private String imageUrl;
 }
