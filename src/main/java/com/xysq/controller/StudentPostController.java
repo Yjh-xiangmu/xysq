@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -538,7 +539,83 @@ public class StudentPostController {
         return Result.success(result);
     }
 
-    // 消息提示：最近24小时内收到的新评论数（不含自己）
+    // 通知列表：评论 + 点赞，自上次已读时间起
+    @ResponseBody
+    @GetMapping("/api/student/notifications")
+    public Result<List<Map<String, Object>>> getNotifications(HttpSession session) {
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof SysStudent student)) return Result.error("请先登录");
+
+        Date since = student.getLastNotifRead() != null
+                ? student.getLastNotifRead()
+                : new Date(System.currentTimeMillis() - 7L * 24 * 3600 * 1000);
+
+        List<SysPost> myPosts = postMapper.selectList(
+                new QueryWrapper<SysPost>().eq("student_id", student.getId()));
+        List<Map<String, Object>> result = new ArrayList<>();
+        if (myPosts.isEmpty()) return Result.success(result);
+
+        List<Integer> postIds = myPosts.stream().map(SysPost::getId).collect(Collectors.toList());
+        Map<Integer, String> postContentMap = new HashMap<>();
+        myPosts.forEach(p -> postContentMap.put(p.getId(),
+                p.getContent().length() > 20 ? p.getContent().substring(0, 20) + "…" : p.getContent()));
+
+        // 评论通知
+        List<SysComment> comments = commentMapper.selectList(new QueryWrapper<SysComment>()
+                .in("post_id", postIds).ne("student_id", student.getId()).ge("create_time", since)
+                .orderByDesc("create_time"));
+        for (SysComment c : comments) {
+            SysStudent sender = studentMapper.selectById(c.getStudentId());
+            Map<String, Object> m = new HashMap<>();
+            m.put("type", "comment");
+            m.put("senderName", sender != null ? sender.getNickname() : "有人");
+            m.put("senderAvatar", sender != null ? sender.getAvatar() : null);
+            m.put("postPreview", postContentMap.getOrDefault(c.getPostId(), "你的帖子"));
+            m.put("detail", c.getContent().length() > 30 ? c.getContent().substring(0, 30) + "…" : c.getContent());
+            m.put("createTime", c.getCreateTime());
+            result.add(m);
+        }
+
+        // 点赞通知 (createTime 是 LocalDateTime，需转换比较)
+        java.time.LocalDateTime sinceLocal = since.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+        List<SysPostLike> likes = postLikeMapper.selectList(new QueryWrapper<SysPostLike>()
+                .in("post_id", postIds).ne("student_id", student.getId()).ge("create_time", sinceLocal)
+                .orderByDesc("create_time"));
+        for (SysPostLike l : likes) {
+            SysStudent sender = studentMapper.selectById(l.getStudentId());
+            Map<String, Object> m = new HashMap<>();
+            m.put("type", "like");
+            m.put("senderName", sender != null ? sender.getNickname() : "有人");
+            m.put("senderAvatar", sender != null ? sender.getAvatar() : null);
+            m.put("postPreview", postContentMap.getOrDefault(l.getPostId(), "你的帖子"));
+            m.put("detail", null);
+            // 转为 Date 以便统一排序
+            m.put("createTime", l.getCreateTime() != null
+                    ? Date.from(l.getCreateTime().atZone(ZoneId.systemDefault()).toInstant()) : new Date(0));
+            result.add(m);
+        }
+
+        result.sort((a, b) -> {
+            Date da = a.get("createTime") instanceof Date ? (Date) a.get("createTime") : new Date(0);
+            Date db = b.get("createTime") instanceof Date ? (Date) b.get("createTime") : new Date(0);
+            return db.compareTo(da);
+        });
+        return Result.success(result);
+    }
+
+    // 标记所有通知已读
+    @ResponseBody
+    @PostMapping("/api/student/notifications/read")
+    public Result<?> markNotificationsRead(HttpSession session) {
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof SysStudent student)) return Result.error("请先登录");
+        student.setLastNotifRead(new Date());
+        studentMapper.updateById(student);
+        session.setAttribute("user", student);
+        return Result.success("已标记已读");
+    }
+
+    // 通知数量：自上次已读时间起未读数
     @ResponseBody
     @GetMapping("/api/student/notifications/count")
     public Result<Map<String, Object>> getNotificationCount(HttpSession session) {
@@ -546,17 +623,21 @@ public class StudentPostController {
         if (!(userObj instanceof SysStudent student)) {
             Map<String, Object> d = new HashMap<>(); d.put("count", 0); return Result.success(d);
         }
-        Date since = new Date(System.currentTimeMillis() - 24L * 3600 * 1000);
+        Date since = student.getLastNotifRead() != null
+                ? student.getLastNotifRead()
+                : new Date(System.currentTimeMillis() - 7L * 24 * 3600 * 1000);
         List<SysPost> myPosts = postMapper.selectList(
                 new QueryWrapper<SysPost>().eq("student_id", student.getId()));
         if (myPosts.isEmpty()) {
             Map<String, Object> d = new HashMap<>(); d.put("count", 0); return Result.success(d);
         }
         List<Integer> postIds = myPosts.stream().map(SysPost::getId).collect(Collectors.toList());
-        long count = commentMapper.selectCount(new QueryWrapper<SysComment>()
+        long commentCount = commentMapper.selectCount(new QueryWrapper<SysComment>()
+                .in("post_id", postIds).ne("student_id", student.getId()).ge("create_time", since));
+        long likeCount = postLikeMapper.selectCount(new QueryWrapper<SysPostLike>()
                 .in("post_id", postIds).ne("student_id", student.getId()).ge("create_time", since));
         Map<String, Object> data = new HashMap<>();
-        data.put("count", count);
+        data.put("count", commentCount + likeCount);
         return Result.success(data);
     }
 }

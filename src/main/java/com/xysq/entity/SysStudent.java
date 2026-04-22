@@ -15,6 +15,7 @@ public class SysStudent {
     private String intro;       // 个人简介
     private String phone;       // 手机号
     private String email;       // 邮箱
-    private Date lastLoginTime; // 最后登录时间
+    private Date lastLoginTime;
+    private Date lastNotifRead;
     private Integer status;
 }

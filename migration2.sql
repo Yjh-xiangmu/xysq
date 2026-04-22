@@ -10,3 +10,7 @@ ALTER TABLE sys_post
 -- 活动增加结束时间
 ALTER TABLE sys_activity
     ADD COLUMN end_time DATETIME DEFAULT NULL COMMENT '活动结束时间，NULL则以开始时间判断是否结束';
+
+-- 学生表增加通知已读时间
+ALTER TABLE sys_student
+    ADD COLUMN last_notif_read DATETIME DEFAULT NULL COMMENT '上次查看通知的时间';
