@@ -46,8 +46,12 @@ public class AuthController {
     public String communityInfo() { return "community/info"; }
     @GetMapping("/community/profile")
     public String communityProfile() { return "community/profile"; }
-    @GetMapping("/community/index")
-    public String communityIndex() { return "redirect:/community/member"; }
+    @GetMapping("/student/messages")
+    public String studentMessages() { return "student/messages"; }
+    @GetMapping("/student/follow-list")
+    public String studentFollowList() { return "student/follow-list"; }
+    @GetMapping("/student/user-profile")
+    public String studentUserProfile() { return "student/user-profile"; }
 
     @ResponseBody
     @PostMapping("/api/login")

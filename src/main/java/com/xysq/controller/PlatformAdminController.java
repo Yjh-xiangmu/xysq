@@ -4,10 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xysq.common.Result;
 import com.xysq.entity.*;
 import com.xysq.mapper.*;
+import com.xysq.mapper.SysReportMapper;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -24,6 +26,7 @@ public class PlatformAdminController {
     @Autowired private SysActivityMapper activityMapper;
     @Autowired private SysAnnouncementMapper announcementMapper;
     @Autowired private SysAdminMapper adminMapper;
+    @Autowired private SysReportMapper reportMapper;
 
     private boolean isPlatformAdmin(HttpSession session) {
         Object obj = session.getAttribute("user");
@@ -182,6 +185,7 @@ public class PlatformAdminController {
             m.put("createTime", p.getCreateTime());
             m.put("communityName", communityNameMap.getOrDefault(p.getCommunityId(), "未知社群"));
             m.put("authorName", studentNameMap.getOrDefault(p.getStudentId(), "匿名"));
+            m.put("authorId", p.getStudentId());
             m.put("imageUrl", p.getImageUrl());
             list.add(m);
         }
@@ -201,24 +205,43 @@ public class PlatformAdminController {
     @GetMapping("/announcement/list")
     public Result<List<Map<String, Object>>> getAnnouncementList(HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
-        List<SysAnnouncement> list = announcementMapper.selectList(new QueryWrapper<SysAnnouncement>().orderByDesc("create_time"));
+        Date now = new Date();
+        List<SysAnnouncement> list = announcementMapper.selectList(new QueryWrapper<SysAnnouncement>()
+                .and(w -> w.isNull("expire_time").or().ge("expire_time", now))
+                .orderByDesc("priority").orderByDesc("create_time"));
         List<Map<String, Object>> result = new ArrayList<>();
         for (SysAnnouncement a : list) {
             Map<String, Object> m = new HashMap<>();
-            m.put("id", a.getId()); m.put("title", a.getTitle()); m.put("content", a.getContent()); m.put("createTime", a.getCreateTime());
+            m.put("id", a.getId());
+            m.put("title", a.getTitle());
+            m.put("content", a.getContent());
+            m.put("createTime", a.getCreateTime());
+            m.put("priority", a.getPriority() != null ? a.getPriority() : 0);
+            m.put("expireTime", a.getExpireTime());
             result.add(m);
         }
         return Result.success(result);
     }
 
     @PostMapping("/announcement/publish")
-    public Result<?> publishAnnouncement(String title, String content, HttpSession session) {
+    public Result<?> publishAnnouncement(String title, String content,
+                                         @RequestParam(defaultValue = "0") Integer priority,
+                                         @RequestParam(required = false) String expireTime,
+                                         HttpSession session) {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
         if (title == null || title.trim().isEmpty()) return Result.error("标题不能为空");
         if (content == null || content.trim().isEmpty()) return Result.error("内容不能为空");
         SysAdmin admin = (SysAdmin) session.getAttribute("user");
         SysAnnouncement a = new SysAnnouncement();
-        a.setTitle(title.trim()); a.setContent(content.trim()); a.setAdminId(admin.getId());
+        a.setTitle(title.trim());
+        a.setContent(content.trim());
+        a.setAdminId(admin.getId());
+        a.setPriority(priority);
+        if (expireTime != null && !expireTime.trim().isEmpty()) {
+            try {
+                a.setExpireTime(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm").parse(expireTime.trim()));
+            } catch (Exception ignored) {}
+        }
         announcementMapper.insert(a);
         return Result.success("公告发布成功");
     }
@@ -228,6 +251,111 @@ public class PlatformAdminController {
         if (!isPlatformAdmin(session)) return Result.error("无权限");
         announcementMapper.deleteById(id);
         return Result.success("公告已删除");
+    }
+
+    // 待审核社群列表（学生申请创建的）
+    @GetMapping("/community/pendingList")
+    public Result<List<Map<String, Object>>> getPendingCommunities(HttpSession session) {
+        if (!isPlatformAdmin(session)) return Result.error("无权限");
+        List<SysCommunity> list = communityMapper.selectList(
+                new QueryWrapper<SysCommunity>().eq("status", 0).orderByAsc("create_time"));
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SysCommunity c : list) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", c.getId());
+            m.put("name", c.getName());
+            m.put("description", c.getDescription());
+            m.put("category", c.getCategory());
+            m.put("creatorStudentId", c.getCreatorStudentId());
+            if (c.getCreatorStudentId() != null) {
+                SysStudent creator = studentMapper.selectById(c.getCreatorStudentId());
+                m.put("creatorNickname", creator != null ? creator.getNickname() : "-");
+                m.put("creatorStudentNo", creator != null ? creator.getStudentNo() : "-");
+            }
+            m.put("createTime", c.getCreateTime());
+            result.add(m);
+        }
+        return Result.success(result);
+    }
+
+    // 审核社群（通过=自动创建社长账号，拒绝=标记状态）
+    @PostMapping("/community/audit")
+    public Result<?> auditCommunity(Integer communityId, Integer status, HttpSession session) {
+        if (!isPlatformAdmin(session)) return Result.error("无权限");
+        SysCommunity community = communityMapper.selectById(communityId);
+        if (community == null) return Result.error("社群不存在");
+        if (status == 1) {
+            community.setStatus(1);
+            communityMapper.updateById(community);
+            // 自动创建社群管理员账号（使用学生账号凭证）
+            if (community.getCreatorStudentId() != null) {
+                SysStudent creator = studentMapper.selectById(community.getCreatorStudentId());
+                if (creator != null) {
+                    // 检查是否已存在该用户名的管理员
+                    long exist = adminMapper.selectCount(new QueryWrapper<SysAdmin>()
+                            .eq("username", creator.getStudentNo()).eq("role", 2));
+                    if (exist == 0) {
+                        SysAdmin newAdmin = new SysAdmin();
+                        newAdmin.setUsername(creator.getStudentNo());
+                        newAdmin.setPassword(creator.getPassword());
+                        newAdmin.setRole(2);
+                        newAdmin.setCommunityId(communityId);
+                        newAdmin.setStudentId(creator.getId());
+                        newAdmin.setNickname(creator.getNickname());
+                        adminMapper.insert(newAdmin);
+                    } else {
+                        // 已有账号，更新绑定社群
+                        SysAdmin existAdmin = adminMapper.selectOne(new QueryWrapper<SysAdmin>()
+                                .eq("username", creator.getStudentNo()).eq("role", 2));
+                        if (existAdmin != null && existAdmin.getCommunityId() == null) {
+                            existAdmin.setCommunityId(communityId);
+                            adminMapper.updateById(existAdmin);
+                        }
+                    }
+                }
+            }
+            return Result.success("审核通过，社群已上线，管理员账号已创建");
+        } else {
+            community.setStatus(2);
+            communityMapper.updateById(community);
+            return Result.success("已拒绝该社群申请");
+        }
+    }
+
+    // 举报列表
+    @GetMapping("/report/list")
+    public Result<List<Map<String, Object>>> getReportList(HttpSession session) {
+        if (!isPlatformAdmin(session)) return Result.error("无权限");
+        List<SysReport> reports = reportMapper.selectList(
+                new QueryWrapper<SysReport>().orderByDesc("create_time"));
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SysReport r : reports) {
+            SysStudent reporter = studentMapper.selectById(r.getReporterId());
+            SysCommunity community = communityMapper.selectById(r.getCommunityId());
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", r.getId());
+            m.put("reason", r.getReason());
+            m.put("status", r.getStatus());
+            m.put("handleResult", r.getHandleResult());
+            m.put("createTime", r.getCreateTime());
+            m.put("reporterNickname", reporter != null ? reporter.getNickname() : "-");
+            m.put("communityName", community != null ? community.getName() : "已删除");
+            m.put("communityId", r.getCommunityId());
+            result.add(m);
+        }
+        return Result.success(result);
+    }
+
+    // 处理举报
+    @PostMapping("/report/handle")
+    public Result<?> handleReport(Integer reportId, String handleResult, HttpSession session) {
+        if (!isPlatformAdmin(session)) return Result.error("无权限");
+        SysReport report = reportMapper.selectById(reportId);
+        if (report == null) return Result.error("举报记录不存在");
+        report.setStatus(1);
+        report.setHandleResult(handleResult != null ? handleResult.trim() : "已处理");
+        reportMapper.updateById(report);
+        return Result.success("举报已处理");
     }
 
     @GetMapping("/community/list")
@@ -241,6 +369,7 @@ public class PlatformAdminController {
             m.put("name", c.getName());
             m.put("category", c.getCategory());
             m.put("isRecommended", c.getIsRecommended() != null && c.getIsRecommended() == 1);
+            m.put("status", c.getStatus() != null ? c.getStatus() : 1);
             m.put("memberCount", memberMapper.selectCount(
                     new QueryWrapper<SysCommunityMember>().eq("community_id", c.getId()).eq("status", 1)));
             result.add(m);
@@ -259,6 +388,7 @@ public class PlatformAdminController {
         c.setDescription(description != null ? description.trim() : "");
         c.setAvatar("https://api.dicebear.com/7.x/bottts/svg?seed=" + System.currentTimeMillis());
         c.setIsRecommended(0);
+        c.setStatus(1);
         communityMapper.insert(c);
         return Result.success("社群创建成功");
     }

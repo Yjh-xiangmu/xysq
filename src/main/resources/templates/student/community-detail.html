@@ -15,18 +15,20 @@
                 </div>
                 <div class="hidden md:flex space-x-8 items-center border-l-2 border-gray-200 ml-6 pl-6">
                     <a href="/student/index" class="text-gray-500 hover:text-indigo-600 font-medium transition px-1 py-2">← 返回广场</a>
+                    <button onclick="showCommunityInfo()" class="text-indigo-600 hover:text-indigo-700 font-medium transition px-1 py-2">社群信息</button>
+                    <button onclick="showSearchModal()" class="text-gray-500 hover:text-indigo-600 font-medium transition px-1 py-2">搜索</button>
                     <button onclick="quitCommunity()" class="text-red-500 hover:text-red-600 font-medium transition px-1 py-2 ml-4">退出本群</button>
                 </div>
             </div>
             <div class="flex items-center space-x-5 relative">
-                <div class="group relative cursor-pointer flex items-center space-x-2">
+                <div class="relative cursor-pointer flex items-center space-x-2" onclick="document.getElementById('nav-user-menu').classList.toggle('hidden')">
                     <img id="navAvatar" src="" class="h-9 w-9 rounded-full object-cover shadow-sm border border-gray-200 hidden">
                     <div id="navAvatarFallback" class="h-9 w-9 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 shadow-sm border-2 border-white flex items-center justify-center text-white font-bold text-sm">我</div>
-                    <div class="hidden group-hover:block absolute right-0 top-full mt-1 w-32 bg-white rounded-xl shadow-lg py-2 border border-gray-100">
-                        <a href="/student/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">个人信息</a>
-                        <div class="border-t border-gray-100 my-1"></div>
-                        <a href="/" class="block px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium">退出登录</a>
-                    </div>
+                </div>
+                <div id="nav-user-menu" class="hidden absolute right-0 top-full mt-1 w-36 bg-white rounded-xl shadow-lg py-2 border border-gray-100 z-30">
+                    <a href="/student/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">个人信息</a>
+                    <div class="border-t border-gray-100 my-1"></div>
+                    <a href="/" class="block px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium">退出登录</a>
                 </div>
             </div>
         </div>
@@ -39,14 +41,14 @@
 
     <div class="flex-1 min-w-0">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-            <textarea id="postContent" rows="3" class="w-full border border-gray-300 rounded-lg p-4 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-colors" placeholder="有什么新鲜事想和大家分享？"></textarea>
+            <textarea id="postContent" rows="3" class="w-full border border-gray-300 rounded-lg p-4 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-colors" placeholder="有什么新鲜事想和大家分享？" oninput="saveDraft()"></textarea>
 
             <div id="image-preview-wrap" class="hidden mt-3 relative inline-block">
                 <img id="image-preview" src="" class="max-h-48 rounded-lg border border-gray-200 object-cover">
                 <button onclick="clearPostImage()" class="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 shadow">×</button>
             </div>
 
-            <div class="flex items-center justify-between mt-4">
+            <div class="flex items-center space-x-4 mt-3">
                 <label class="cursor-pointer flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
@@ -54,6 +56,15 @@
                     添加图片
                     <input type="file" id="postImageInput" accept="image/*" class="hidden" onchange="handlePostImage(event)">
                 </label>
+                <div class="flex items-center gap-1.5 text-sm text-gray-500">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <input type="datetime-local" id="scheduledTime" class="border border-gray-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-400 text-gray-600" title="定时发布（留空立即发布）">
+                    <span class="text-xs text-gray-400">定时发布（留空立即）</span>
+                </div>
+                <span id="draft-saved" class="text-xs text-gray-400 hidden">已自动保存草稿</span>
+            </div>
+
+            <div class="flex items-center justify-end mt-4">
                 <button onclick="publishPost()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-8 rounded-lg transition-colors shadow-sm">发 布</button>
             </div>
         </div>
@@ -97,14 +108,21 @@
         <div class="bg-gradient-to-r from-indigo-500 to-purple-600 h-28"></div>
         <div class="px-6 pb-8 relative">
             <div class="flex justify-center -mt-12 mb-4">
-                <div id="card-avatar-wrap" class="h-24 w-24 rounded-full border-4 border-white shadow-md bg-white flex items-center justify-center text-3xl font-bold text-gray-400 overflow-hidden cursor-default">
-                </div>
+                <div id="card-avatar-wrap" class="h-24 w-24 rounded-full border-4 border-white shadow-md bg-white flex items-center justify-center text-3xl font-bold text-gray-400 overflow-hidden cursor-default"></div>
             </div>
             <div class="text-center">
                 <h3 id="card-nickname" class="text-xl font-bold text-gray-800">加载中...</h3>
-                <p id="card-intro" class="text-sm text-gray-500 mt-2">暂无简介</p>
+                <p id="card-intro" class="text-sm text-gray-500 mt-1 px-4">暂无简介</p>
             </div>
-            <div class="mt-6 space-y-3">
+            <div class="flex justify-center space-x-8 mt-4 mb-4">
+                <div class="text-center"><div id="card-likes" class="text-lg font-bold text-gray-800">-</div><div class="text-xs text-gray-400">获赞</div></div>
+                <div class="text-center"><div id="card-follows" class="text-lg font-bold text-gray-800">-</div><div class="text-xs text-gray-400">关注</div></div>
+            </div>
+            <div class="flex space-x-3 mb-4">
+                <button id="card-follow-btn" onclick="" class="flex-1 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">+ 关注</button>
+                <button id="card-msg-btn" onclick="" class="flex-1 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">私信</button>
+            </div>
+            <div class="space-y-2">
                 <div class="flex items-center text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
                     <span class="mr-3 text-lg">📱</span> <span id="card-phone" class="font-medium">保密</span>
                 </div>
@@ -126,6 +144,8 @@
         loadNavAvatar();
         loadPosts();
         loadActivities();
+        const draft = localStorage.getItem(`post_draft_${communityId}`);
+        if (draft) { document.getElementById('postContent').value = draft; }
     });
 
     function loadNavAvatar() {
@@ -169,6 +189,22 @@
         document.getElementById('postImageInput').value = '';
     }
 
+    let draftTimer = null;
+    function saveDraft() {
+        clearTimeout(draftTimer);
+        draftTimer = setTimeout(() => {
+            const content = document.getElementById('postContent').value;
+            if (content.trim()) {
+                localStorage.setItem(`post_draft_${communityId}`, content);
+                const hint = document.getElementById('draft-saved');
+                hint.classList.remove('hidden');
+                setTimeout(() => hint.classList.add('hidden'), 2000);
+            } else {
+                localStorage.removeItem(`post_draft_${communityId}`);
+            }
+        }, 800);
+    }
+
     function publishPost() {
         const content = document.getElementById('postContent').value.trim();
         if (!content) return alert('写点什么再发布吧！');
@@ -176,6 +212,9 @@
         const fd = new FormData();
         fd.append('communityId', communityId);
         fd.append('content', content);
+
+        const scheduledTime = document.getElementById('scheduledTime').value;
+        if (scheduledTime) fd.append('scheduledTime', scheduledTime);
 
         const fileInput = document.getElementById('postImageInput');
         if (fileInput.files.length > 0) {
@@ -187,6 +226,8 @@
             .then(res => {
                 if (res.code === 200) {
                     document.getElementById('postContent').value = '';
+                    document.getElementById('scheduledTime').value = '';
+                    localStorage.removeItem(`post_draft_${communityId}`);
                     clearPostImage();
                     loadPosts();
                 } else alert('❌ ' + res.msg);
@@ -309,7 +350,10 @@
     }
 
     // 个性化名片逻辑
+    let cardStudentId = null;
     function showUserCard(studentId) {
+        if (studentId === currentStudentId) return;
+        cardStudentId = studentId;
         document.getElementById('user-card-modal').classList.remove('hidden');
         document.getElementById('card-nickname').textContent = '加载中...';
         document.getElementById('card-intro').textContent = '...';
@@ -317,7 +361,7 @@
         document.getElementById('card-email').textContent = '...';
         document.getElementById('card-avatar-wrap').innerHTML = '';
 
-        fetch(`/api/student/public-profile?studentId=${studentId}`)
+        fetch(`/api/student/user/${studentId}/profile`)
             .then(r => r.json())
             .then(res => {
                 if(res.code === 200) {
@@ -326,6 +370,15 @@
                     document.getElementById('card-intro').textContent = u.intro || '这个人很懒，什么都没留下~';
                     document.getElementById('card-phone').textContent = u.phone || '未公开';
                     document.getElementById('card-email').textContent = u.email || '未公开';
+                    // 统计数据
+                    document.getElementById('card-likes').textContent = u.likeCount || 0;
+                    document.getElementById('card-follows').textContent = u.followCount || 0;
+                    // 关注按钮
+                    const followBtn = document.getElementById('card-follow-btn');
+                    if (u.isFollowed) { followBtn.textContent = '已关注'; followBtn.className = followBtn.className.replace('bg-indigo-600 hover:bg-indigo-700','bg-gray-100 text-gray-600 hover:bg-gray-200'); }
+                    else { followBtn.textContent = '+ 关注'; followBtn.className = followBtn.className.replace('bg-gray-100 text-gray-600 hover:bg-gray-200','bg-indigo-600 text-white hover:bg-indigo-700'); }
+                    followBtn.onclick = () => toggleFollowFromCard(studentId);
+                    document.getElementById('card-msg-btn').onclick = () => sendMessageFromCard(studentId);
 
                     if(u.avatar) {
                         document.getElementById('card-avatar-wrap').innerHTML = `<img src="${u.avatar}" class="h-full w-full object-cover">`;
@@ -443,9 +496,14 @@
             return;
         }
         container.innerHTML = activities.map(act => {
-            const btnHtml = act.isSigned
-                ? `<button disabled class="w-full bg-gray-100 text-gray-500 py-2 rounded-lg text-sm font-medium cursor-not-allowed">✓ 已报名</button>`
-                : `<button onclick="signActivity(${act.id})" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">立即报名</button>`;
+            let btnHtml;
+            if (act.isSigned === true) {
+                const statusMap = {0:'审核中...', 1:'已通过', 2:'被拒绝'};
+                const statusColor = act.signStatus === 1 ? 'text-green-600 bg-green-50' : act.signStatus === 2 ? 'text-red-500 bg-red-50' : 'text-yellow-600 bg-yellow-50';
+                btnHtml = `<button disabled class="w-full ${statusColor} border border-current py-2 rounded-lg text-sm font-medium cursor-not-allowed">${statusMap[act.signStatus] || '审核中...'}</button>`;
+            } else {
+                btnHtml = `<button onclick="openSignModal(${act.id})" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">立即报名</button>`;
+            }
             return `
             <div class="border border-gray-100 rounded-xl p-4 hover:shadow-sm transition-shadow bg-gray-50">
                 <h4 class="font-bold text-gray-800 text-sm mb-2">${escapeHtml(act.title)}</h4>
@@ -453,7 +511,10 @@
                 <p class="text-xs text-gray-500 mb-3">📍 ${escapeHtml(act.location)}</p>
                 <p class="text-xs text-gray-600 mb-3 line-clamp-2">${escapeHtml(act.content)}</p>
                 <div class="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full inline-block mb-3">已报名 ${act.signCount} 人</div>
-                <div>${btnHtml}</div>
+                <div class="flex gap-2">
+                    ${btnHtml}
+                    <button onclick="showActivityDetail(${act.id})" class="flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 py-2 px-3 rounded-lg text-sm font-medium transition-colors">详情</button>
+                </div>
             </div>`;
         }).join('');
     }
@@ -507,6 +568,217 @@
                 else alert(res.msg);
             });
     }
+
+    let pendingSignActivityId = null;
+    function openSignModal(activityId) {
+        pendingSignActivityId = activityId;
+        document.getElementById('sign-realname').value = '';
+        document.getElementById('sign-phone').value = '';
+        document.getElementById('sign-remark').value = '';
+        document.getElementById('sign-modal').classList.remove('hidden');
+    }
+    function closeSignModal() { document.getElementById('sign-modal').classList.add('hidden'); }
+    function submitSign() {
+        const realName = document.getElementById('sign-realname').value.trim();
+        const phone = document.getElementById('sign-phone').value.trim();
+        const remark = document.getElementById('sign-remark').value.trim();
+        if (!realName || !phone) return alert('请填写真实姓名和联系电话');
+        const fd = new URLSearchParams();
+        fd.append('activityId', pendingSignActivityId);
+        fd.append('realName', realName);
+        fd.append('phone', phone);
+        fd.append('remark', remark);
+        fetch('/api/student/activity/sign', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
+            if (res.code === 200) { alert(res.msg); closeSignModal(); loadActivities(); }
+            else alert(res.msg);
+        });
+    }
+
+    function showActivityDetail(activityId) {
+        document.getElementById('activity-detail-modal').classList.remove('hidden');
+        document.getElementById('act-detail-body').innerHTML = '<p class="text-gray-400 text-sm">加载中...</p>';
+        fetch(`/api/student/activity/list?communityId=${communityId}`).then(r => r.json()).then(res => {
+            if (res.code === 200) {
+                const act = res.data.find(a => a.id === activityId);
+                if (act) {
+                    document.getElementById('act-detail-body').innerHTML = `
+                        <h4 class="text-lg font-bold text-gray-800 mb-3">${escapeHtml(act.title)}</h4>
+                        <p class="text-sm text-gray-500 mb-1">🕒 活动时间：${formatTime(act.eventTime)}</p>
+                        <p class="text-sm text-gray-500 mb-4">📍 活动地点：${escapeHtml(act.location)}</p>
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                            <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">${escapeHtml(act.content)}</p>
+                        </div>
+                        <p class="text-xs text-indigo-600 mt-3">已报名 ${act.signCount} 人</p>`;
+                }
+            }
+        });
+    }
+
+    function showCommunityInfo() {
+        document.getElementById('community-info-modal').classList.remove('hidden');
+        fetch(`/api/student/community/${communityId}/members`).then(r => r.json()).then(res => {
+            if (res.code === 200) {
+                document.getElementById('ci-name').textContent = res.data.communityName;
+                document.getElementById('ci-desc').textContent = res.data.description || '暂无简介';
+                document.getElementById('ci-count').textContent = res.data.memberCount + ' 人';
+                renderMembersList(res.data.members);
+            }
+        });
+    }
+    function renderMembersList(members) {
+        const container = document.getElementById('ci-members-list');
+        if (!members || members.length === 0) { container.innerHTML = '<div class="text-gray-400 text-sm text-center py-4">暂无成员</div>'; return; }
+        container.innerHTML = members.map(m => `
+            <div class="flex items-center space-x-3 py-2 border-b border-gray-50 cursor-pointer hover:bg-gray-50 rounded-lg px-2" onclick="showUserCardFromMember(${m.studentId})">
+                ${m.avatar ? `<img src="${m.avatar}" class="h-8 w-8 rounded-full object-cover flex-shrink-0">` : `<div class="h-8 w-8 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">${(m.nickname||'?').charAt(0)}</div>`}
+                <div><p class="text-sm font-medium text-gray-800">${escapeHtml(m.nickname||'匿名')}</p><p class="text-xs text-gray-400">${m.studentNo}</p></div>
+            </div>`).join('');
+    }
+    function showUserCardFromMember(studentId) { showUserCard(studentId); }
+
+    function showSearchModal() {
+        document.getElementById('search-modal').classList.remove('hidden');
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-results').innerHTML = '';
+        document.getElementById('search-input').focus();
+    }
+    function doSearch() {
+        const kw = document.getElementById('search-input').value.trim();
+        if (!kw) return;
+        fetch(`/api/student/community/${communityId}/search?keyword=${encodeURIComponent(kw)}`).then(r => r.json()).then(res => {
+            const container = document.getElementById('search-results');
+            if (res.code !== 200 || !res.data || res.data.length === 0) {
+                container.innerHTML = '<div class="text-gray-400 text-sm text-center py-6">没有找到相关内容</div>';
+                return;
+            }
+            container.innerHTML = res.data.map(p => `
+                <div class="border border-gray-100 rounded-lg p-3 hover:bg-gray-50">
+                    <p class="text-sm text-gray-800 whitespace-pre-wrap line-clamp-3">${escapeHtml(p.content)}</p>
+                    <p class="text-xs text-gray-400 mt-1">${escapeHtml(p.authorName)} · ${formatTime(p.createTime)}</p>
+                </div>`).join('');
+        });
+    }
+
+    function showReportModal() {
+        document.getElementById('report-modal').classList.remove('hidden');
+        document.getElementById('report-reason').value = '';
+    }
+    function submitReport() {
+        const reason = document.getElementById('report-reason').value.trim();
+        if (!reason) return alert('请填写举报原因');
+        const fd = new URLSearchParams();
+        fd.append('communityId', communityId);
+        fd.append('reason', reason);
+        fetch('/api/student/community/report', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
+            alert(res.msg);
+            if (res.code === 200) document.getElementById('report-modal').classList.add('hidden');
+        });
+    }
+
+    // 关注按钮（在用户名片里）
+    function toggleFollowFromCard(studentId) {
+        const fd = new URLSearchParams(); fd.append('followedId', studentId);
+        fetch('/api/student/follow/toggle', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
+            if (res.code === 200) {
+                const btn = document.getElementById('card-follow-btn');
+                if (res.data.isFollowed) { btn.textContent = '已关注'; btn.className = btn.className.replace('bg-indigo-600 hover:bg-indigo-700','bg-gray-100 text-gray-600 hover:bg-gray-200'); }
+                else { btn.textContent = '+ 关注'; btn.className = btn.className.replace('bg-gray-100 text-gray-600 hover:bg-gray-200','bg-indigo-600 hover:bg-indigo-700'); }
+            }
+        });
+    }
+    function sendMessageFromCard(studentId) { window.location.href = `/student/messages?with=${studentId}`; }
+
+    document.addEventListener('click', e => {
+        const menu = document.getElementById('nav-user-menu');
+        if (menu && !e.target.closest('#nav-user-menu') && !e.target.closest('[onclick*="nav-user-menu"]')) {
+            menu.classList.add('hidden');
+        }
+    });
 </script>
+<!-- 报名 Modal -->
+<div id="sign-modal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+        <h3 class="font-bold text-gray-800 text-lg mb-4">填写报名信息</h3>
+        <div class="space-y-4">
+            <div><label class="block text-xs text-gray-500 mb-1">真实姓名 <span class="text-red-400">*</span></label>
+                <input type="text" id="sign-realname" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 text-sm" placeholder="请填写真实姓名"></div>
+            <div><label class="block text-xs text-gray-500 mb-1">联系电话 <span class="text-red-400">*</span></label>
+                <input type="tel" id="sign-phone" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 text-sm" placeholder="请填写联系电话"></div>
+            <div><label class="block text-xs text-gray-500 mb-1">备注（可选）</label>
+                <textarea id="sign-remark" rows="2" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 resize-none text-sm" placeholder="其他想说的..."></textarea></div>
+            <p class="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">提交后需要社群管理员审核，审核通过后即可参加活动。</p>
+            <div class="flex space-x-3 mt-4">
+                <button onclick="closeSignModal()" class="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-lg hover:bg-gray-50 text-sm font-medium">取消</button>
+                <button onclick="submitSign()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg text-sm font-medium">提交报名</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 活动详情 Modal -->
+<div id="activity-detail-modal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-gray-800 text-lg">活动详情</h3>
+            <button onclick="document.getElementById('activity-detail-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
+        </div>
+        <div id="act-detail-body" class="min-h-24"></div>
+    </div>
+</div>
+
+<!-- 社群信息 Modal -->
+<div id="community-info-modal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6 max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-gray-800 text-lg">社群信息</h3>
+            <button onclick="document.getElementById('community-info-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
+        </div>
+        <div class="mb-4">
+            <h4 id="ci-name" class="text-xl font-bold text-indigo-700 mb-2"></h4>
+            <p id="ci-desc" class="text-sm text-gray-600 leading-relaxed"></p>
+        </div>
+        <div class="flex space-x-2 mb-4">
+            <button onclick="showReportModal()" class="px-4 py-2 text-sm bg-red-50 text-red-600 hover:bg-red-100 rounded-lg font-medium transition-colors">举报社群</button>
+        </div>
+        <div class="border-t border-gray-100 pt-4 flex-1 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+                <h5 class="font-semibold text-gray-700 text-sm">群成员</h5>
+                <span id="ci-count" class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full"></span>
+            </div>
+            <div id="ci-members-list" class="overflow-y-auto space-y-1 flex-1"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 搜索 Modal -->
+<div id="search-modal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-gray-800 text-lg">搜索社群内容</h3>
+            <button onclick="document.getElementById('search-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
+        </div>
+        <div class="flex space-x-2 mb-4">
+            <input type="text" id="search-input" class="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 text-sm" placeholder="搜索帖子内容..." onkeydown="if(event.key==='Enter') doSearch()">
+            <button onclick="doSearch()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium">搜索</button>
+        </div>
+        <div id="search-results" class="space-y-3 max-h-96 overflow-y-auto"></div>
+    </div>
+</div>
+
+<!-- 举报 Modal -->
+<div id="report-modal" class="hidden fixed inset-0 z-[70] bg-black/40 flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6">
+        <h3 class="font-bold text-gray-800 text-lg mb-4">举报社群</h3>
+        <div class="space-y-4">
+            <div><label class="block text-xs text-gray-500 mb-1">举报原因 <span class="text-red-400">*</span></label>
+                <textarea id="report-reason" rows="4" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-red-400 resize-none text-sm" placeholder="请详细描述举报原因..."></textarea></div>
+            <div class="flex space-x-3">
+                <button onclick="document.getElementById('report-modal').classList.add('hidden')" class="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-lg hover:bg-gray-50 text-sm font-medium">取消</button>
+                <button onclick="submitReport()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-lg text-sm font-medium">提交举报</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

@@ -14,4 +14,6 @@ public class SysCommunity {
     private String category;
     private Integer isRecommended;
     private Date createTime;
+    private Integer status; // 0待审核 1正常 2已拒绝
+    private Integer creatorStudentId;
 }

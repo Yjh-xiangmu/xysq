@@ -12,4 +12,8 @@ public class SysActivitySign {
     private Integer activityId;
     private Integer studentId;
     private Date signTime;
+    private Integer status; // 0待审核 1已通过 2已拒绝
+    private String realName;
+    private String phone;
+    private String remark;
 }

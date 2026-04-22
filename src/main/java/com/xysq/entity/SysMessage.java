@@ -6,14 +6,13 @@ import lombok.Data;
 import java.util.Date;
 
 @Data
-public class SysActivity {
+public class SysMessage {
     @TableId(type = IdType.AUTO)
     private Integer id;
-    private Integer communityId;
-    private String title;
+    private Integer fromStudentId;
+    private Integer toStudentId;
     private String content;
-    private Date eventTime;
-    private Date endTime;
-    private String location;
+    private String imageUrl;
+    private Integer isRead;
     private Date createTime;
 }

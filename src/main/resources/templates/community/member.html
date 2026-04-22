@@ -45,9 +45,15 @@
             </div>
 
             <div id="panel-audit">
+                <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center space-x-2">
+                    <button onclick="batchAudit(1)" class="text-white bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded text-sm font-medium">批量同意</button>
+                    <button onclick="batchAudit(2)" class="text-gray-700 bg-gray-200 hover:bg-gray-300 px-3 py-1.5 rounded text-sm font-medium">批量拒绝</button>
+                    <span class="text-xs text-gray-400">勾选后批量操作</span>
+                </div>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                     <tr>
+                        <th class="px-4 py-3 w-10"><input type="checkbox" id="audit-check-all" onchange="toggleAllAudit(this.checked)" class="rounded border-gray-300"></th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">学号</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">昵称</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">申请时间</th>
@@ -55,15 +61,20 @@
                     </tr>
                     </thead>
                     <tbody id="audit-list-body" class="bg-white divide-y divide-gray-200">
-                    <tr><td colspan="4" class="px-6 py-10 text-center text-sm text-gray-400">正在加载...</td></tr>
+                    <tr><td colspan="5" class="px-6 py-10 text-center text-sm text-gray-400">正在加载...</td></tr>
                     </tbody>
                 </table>
             </div>
 
             <div id="panel-joined" class="hidden">
+                <div class="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center space-x-2">
+                    <button onclick="batchRemove()" class="text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded text-sm font-medium">批量踢出</button>
+                    <span class="text-xs text-gray-400">勾选后批量操作</span>
+                </div>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                     <tr>
+                        <th class="px-4 py-3 w-10"><input type="checkbox" id="joined-check-all" onchange="toggleAllJoined(this.checked)" class="rounded border-gray-300"></th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">学号</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">昵称</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">加入时间</th>
@@ -71,7 +82,7 @@
                     </tr>
                     </thead>
                     <tbody id="joined-list-body" class="bg-white divide-y divide-gray-200">
-                    <tr><td colspan="4" class="px-6 py-10 text-center text-sm text-gray-400">正在加载...</td></tr>
+                    <tr><td colspan="5" class="px-6 py-10 text-center text-sm text-gray-400">正在加载...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -153,15 +164,39 @@
             const t = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
             return `
             <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-4 py-4"><input type="checkbox" class="audit-check rounded border-gray-300" value="${item.recordId}"></td>
                 <td class="px-6 py-4 text-sm font-medium text-gray-900">${item.studentNo}</td>
                 <td class="px-6 py-4 text-sm text-gray-500">${item.nickname || '未设置'}</td>
                 <td class="px-6 py-4 text-sm text-gray-500">${t}</td>
                 <td class="px-6 py-4 text-right space-x-2">
+                    <button onclick="viewAuditDetail(${item.recordId})" class="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded text-sm transition-colors">查看资料</button>
                     <button onclick="handleAudit(${item.recordId}, 1)" class="text-white bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded text-sm transition-colors">同意</button>
                     <button onclick="handleAudit(${item.recordId}, 2)" class="text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded text-sm transition-colors">拒绝</button>
                 </td>
             </tr>`;
         }).join('');
+    }
+
+    function viewAuditDetail(recordId) {
+        fetch(`/api/community/member/auditDetail?recordId=${recordId}`).then(r => r.json()).then(res => {
+            if (res.code === 200) {
+                const d = res.data;
+                document.getElementById('m-nickname').textContent = d.nickname || '匿名成员';
+                document.getElementById('m-studentNo').textContent = '学号：' + d.studentNo;
+                document.getElementById('m-intro').textContent = d.intro || '该成员暂未填写简介';
+                document.getElementById('m-phone').textContent = d.phone || '未留存手机号';
+                document.getElementById('m-email').textContent = d.email || '未留存邮箱';
+                const avatarImg = document.getElementById('m-avatar');
+                const avatarFallback = document.getElementById('m-avatar-fallback');
+                if (d.avatar) {
+                    avatarImg.src = d.avatar; avatarImg.classList.remove('hidden'); avatarFallback.classList.add('hidden');
+                } else {
+                    avatarFallback.textContent = (d.nickname || '?').charAt(0);
+                    avatarFallback.classList.remove('hidden'); avatarImg.classList.add('hidden');
+                }
+                document.getElementById('member-modal').classList.remove('hidden');
+            } else alert(res.msg);
+        });
     }
 
     function handleAudit(recordId, status) {
@@ -198,6 +233,7 @@
             const encData = encodeURIComponent(JSON.stringify(item));
             return `
             <tr class="hover:bg-gray-50 transition-colors">
+                <td class="px-4 py-4"><input type="checkbox" class="joined-check rounded border-gray-300" value="${item.recordId}"></td>
                 <td class="px-6 py-4 text-sm font-medium text-gray-900">${item.studentNo}</td>
                 <td class="px-6 py-4 text-sm text-gray-500">${item.nickname || '未设置'}</td>
                 <td class="px-6 py-4 text-sm text-gray-400">${t}</td>
@@ -239,6 +275,45 @@
             .then(r => r.json())
             .then(res => {
                 if (res.code === 200) { loadJoinedList(); }
+                else alert('❌ ' + res.msg);
+            });
+    }
+
+    function toggleAllAudit(checked) {
+        document.querySelectorAll('.audit-check').forEach(cb => cb.checked = checked);
+    }
+    function toggleAllJoined(checked) {
+        document.querySelectorAll('.joined-check').forEach(cb => cb.checked = checked);
+    }
+    function getCheckedIds(cls) {
+        return Array.from(document.querySelectorAll(`.${cls}:checked`)).map(cb => parseInt(cb.value));
+    }
+
+    function batchAudit(status) {
+        const ids = getCheckedIds('audit-check');
+        if (ids.length === 0) return alert('请先勾选要操作的申请');
+        if (!confirm(`确定${status === 1 ? '同意' : '拒绝'}选中的 ${ids.length} 个申请吗？`)) return;
+        const fd = new URLSearchParams();
+        ids.forEach(id => fd.append('recordIds', id));
+        fd.append('status', status);
+        fetch('/api/community/member/batchAudit', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) { loadAuditList(); loadJoinedList(); }
+                else alert('❌ ' + res.msg);
+            });
+    }
+
+    function batchRemove() {
+        const ids = getCheckedIds('joined-check');
+        if (ids.length === 0) return alert('请先勾选要踢出的成员');
+        if (!confirm(`确定踢出选中的 ${ids.length} 名成员吗？`)) return;
+        const fd = new URLSearchParams();
+        ids.forEach(id => fd.append('recordIds', id));
+        fetch('/api/community/member/batchRemove', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(res => {
+                if (res.code === 200) loadJoinedList();
                 else alert('❌ ' + res.msg);
             });
     }

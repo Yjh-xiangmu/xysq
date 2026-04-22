@@ -6,14 +6,10 @@ import lombok.Data;
 import java.util.Date;
 
 @Data
-public class SysActivity {
+public class SysFollow {
     @TableId(type = IdType.AUTO)
     private Integer id;
-    private Integer communityId;
-    private String title;
-    private String content;
-    private Date eventTime;
-    private Date endTime;
-    private String location;
+    private Integer followerId;
+    private Integer followedId;
     private Date createTime;
 }

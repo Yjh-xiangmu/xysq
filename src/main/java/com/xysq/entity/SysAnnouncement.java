@@ -14,5 +14,7 @@ public class SysAnnouncement {
     private String title;
     private String content;
     private Integer adminId;
+    private Integer priority; // 0普通 1重要 2紧急
+    private Date expireTime;
     private Date createTime;
 }

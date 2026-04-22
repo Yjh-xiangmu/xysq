@@ -25,6 +25,7 @@ public class CommunityAdminController {
     @Autowired private SysCommentMapper commentMapper;
     @Autowired private SysCommunityMapper communityMapper;
     @Autowired private SysAdminMapper adminMapper;
+    @Autowired private SysPostLikeMapper postLikeMapper;
 
     // ===== 权限校验工具 =====
     private SysAdmin getAdmin(HttpSession session) {
@@ -116,29 +117,77 @@ public class CommunityAdminController {
         return Result.success("已将该成员移出社群");
     }
 
+    // 批量审核（同意/拒绝）
+    @PostMapping("/member/batchAudit")
+    public Result<?> batchAuditMember(@RequestParam List<Integer> recordIds, Integer status, HttpSession session) {
+        SysAdmin admin = getAdmin(session);
+        if (admin == null) return Result.error("无权限或未登录");
+        for (Integer rid : recordIds) {
+            SysCommunityMember r = memberMapper.selectById(rid);
+            if (r != null && r.getCommunityId().equals(admin.getCommunityId())) {
+                r.setStatus(status);
+                memberMapper.updateById(r);
+            }
+        }
+        return Result.success("批量操作成功，共处理 " + recordIds.size() + " 条记录");
+    }
+
+    // 批量踢出
+    @PostMapping("/member/batchRemove")
+    public Result<?> batchRemoveMember(@RequestParam List<Integer> recordIds, HttpSession session) {
+        SysAdmin admin = getAdmin(session);
+        if (admin == null) return Result.error("无权限或未登录");
+        for (Integer rid : recordIds) {
+            SysCommunityMember r = memberMapper.selectById(rid);
+            if (r != null && r.getCommunityId().equals(admin.getCommunityId())) {
+                memberMapper.deleteById(rid);
+            }
+        }
+        return Result.success("批量踢出成功，共处理 " + recordIds.size() + " 人");
+    }
+
     // ===================== 帖子管理 =====================
 
-    // 获取本社群所有帖子
+    // 获取本社群所有帖子（支持关键词搜索 + 排序）
     @GetMapping("/post/list")
-    public Result<List<Map<String, Object>>> getPostList(HttpSession session) {
+    public Result<List<Map<String, Object>>> getPostList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "time") String sort,
+            HttpSession session) {
         SysAdmin admin = getAdmin(session);
         if (admin == null) return Result.error("无权限或未登录");
         if (admin.getCommunityId() == null) return Result.error("未绑定社群");
 
-        List<SysPost> posts = postMapper.selectList(
-                new QueryWrapper<SysPost>().eq("community_id", admin.getCommunityId()).orderByDesc("create_time"));
+        QueryWrapper<SysPost> qw = new QueryWrapper<SysPost>()
+                .eq("community_id", admin.getCommunityId());
+        if (keyword != null && !keyword.trim().isEmpty()) qw.like("content", keyword.trim());
+        if ("hot".equals(sort)) {
+            qw.orderByDesc("(SELECT COUNT(*) FROM sys_comment WHERE post_id = sys_post.id)");
+        } else {
+            qw.orderByDesc("create_time");
+        }
+
+        List<SysPost> posts = postMapper.selectList(qw);
 
         List<Map<String, Object>> list = new ArrayList<>();
         for (SysPost p : posts) {
             SysStudent s = studentMapper.selectById(p.getStudentId());
             long commentCount = commentMapper.selectCount(new QueryWrapper<SysComment>().eq("post_id", p.getId()));
+            long likeCount = postLikeMapper.selectCount(new QueryWrapper<SysPostLike>().eq("post_id", p.getId()));
             Map<String, Object> m = new HashMap<>();
             m.put("id", p.getId());
             m.put("content", p.getContent());
             m.put("status", p.getStatus());
             m.put("createTime", p.getCreateTime());
             m.put("authorName", s != null ? s.getNickname() : "匿名");
+            m.put("authorId", p.getStudentId());
+            m.put("authorAvatar", s != null ? s.getAvatar() : null);
+            m.put("authorStudentNo", s != null ? s.getStudentNo() : "-");
+            m.put("authorPhone", s != null ? s.getPhone() : "-");
+            m.put("authorEmail", s != null ? s.getEmail() : "-");
+            m.put("authorIntro", s != null ? s.getIntro() : "-");
             m.put("commentCount", commentCount);
+            m.put("likeCount", likeCount);
             list.add(m);
         }
         return Result.success(list);
@@ -175,6 +224,7 @@ public class CommunityAdminController {
     @PostMapping("/activity/publish")
     public Result<?> publishActivity(String title, String content, String location,
                                      @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") Date eventTime,
+                                     @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") Date endTime,
                                      HttpSession session) {
         SysAdmin admin = getAdmin(session);
         if (admin == null) return Result.error("无权限或未登录");
@@ -185,6 +235,7 @@ public class CommunityAdminController {
         activity.setContent(content);
         activity.setLocation(location);
         activity.setEventTime(eventTime);
+        activity.setEndTime(endTime);
         activityMapper.insert(activity);
         return Result.success("活动发布成功！");
     }
@@ -234,6 +285,7 @@ public class CommunityAdminController {
             m.put("title", a.getTitle());
             m.put("location", a.getLocation());
             m.put("eventTime", a.getEventTime());
+            m.put("endTime", a.getEndTime());
             m.put("createTime", a.getCreateTime());
             m.put("signCount", signCount);
             list.add(m);
@@ -348,5 +400,134 @@ public class CommunityAdminController {
         dbAdmin.setPassword(newPwd);
         adminMapper.updateById(dbAdmin);
         return Result.success("密码修改成功，请重新登录");
+    }
+
+    // ===================== 管理员个人信息 =====================
+
+    @GetMapping("/admin/profile")
+    public Result<Map<String, Object>> getAdminProfile(HttpSession session) {
+        SysAdmin admin = getAdmin(session);
+        if (admin == null) return Result.error("无权限或未登录");
+        SysAdmin db = adminMapper.selectById(admin.getId());
+        Map<String, Object> data = new HashMap<>();
+        data.put("username", db.getUsername());
+        data.put("nickname", db.getNickname());
+        data.put("avatar", db.getAvatar());
+        data.put("phone", db.getPhone());
+        data.put("email", db.getEmail());
+        return Result.success(data);
+    }
+
+    @PostMapping("/admin/profile/update")
+    public Result<?> updateAdminProfile(String nickname, String phone, String email,
+                                        @RequestParam(value = "avatarFile", required = false)
+                                        org.springframework.web.multipart.MultipartFile avatarFile,
+                                        HttpSession session) {
+        SysAdmin admin = getAdmin(session);
+        if (admin == null) return Result.error("无权限或未登录");
+        SysAdmin db = adminMapper.selectById(admin.getId());
+        if (nickname != null && !nickname.trim().isEmpty()) db.setNickname(nickname.trim());
+        if (phone != null) db.setPhone(phone.trim());
+        if (email != null) db.setEmail(email.trim());
+        if (avatarFile != null && !avatarFile.isEmpty()) {
+            try {
+                String fileName = java.util.UUID.randomUUID().toString() + "_" + avatarFile.getOriginalFilename();
+                String uploadPath = System.getProperty("user.dir") + "/uploads/avatars/";
+                java.io.File dir = new java.io.File(uploadPath);
+                if (!dir.exists()) dir.mkdirs();
+                avatarFile.transferTo(new java.io.File(dir, fileName));
+                db.setAvatar("/uploads/avatars/" + fileName);
+            } catch (Exception e) {
+                return Result.error("头像上传失败");
+            }
+        }
+        adminMapper.updateById(db);
+        session.setAttribute("user", db);
+        return Result.success("个人信息更新成功");
+    }
+
+    // ===================== 活动详情 =====================
+
+    @GetMapping("/activity/detail")
+    public Result<Map<String, Object>> getActivityDetail(Integer activityId, HttpSession session) {
+        SysAdmin admin = getAdmin(session);
+        if (admin == null) return Result.error("无权限或未登录");
+        SysActivity a = activityMapper.selectById(activityId);
+        if (a == null || !a.getCommunityId().equals(admin.getCommunityId()))
+            return Result.error("活动不存在或无权限");
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", a.getId());
+        m.put("title", a.getTitle());
+        m.put("content", a.getContent());
+        m.put("location", a.getLocation());
+        m.put("eventTime", a.getEventTime());
+        m.put("createTime", a.getCreateTime());
+        return Result.success(m);
+    }
+
+    // ===================== 活动报名审核 =====================
+
+    @GetMapping("/activity/signRequests")
+    public Result<List<Map<String, Object>>> getSignRequests(Integer activityId, HttpSession session) {
+        SysAdmin admin = getAdmin(session);
+        if (admin == null) return Result.error("无权限或未登录");
+        SysActivity activity = activityMapper.selectById(activityId);
+        if (activity == null || !activity.getCommunityId().equals(admin.getCommunityId()))
+            return Result.error("无权限查看");
+
+        List<SysActivitySign> signs = activitySignMapper.selectList(
+                new QueryWrapper<SysActivitySign>().eq("activity_id", activityId).orderByAsc("sign_time"));
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (SysActivitySign s : signs) {
+            SysStudent st = studentMapper.selectById(s.getStudentId());
+            Map<String, Object> m = new HashMap<>();
+            m.put("signId", s.getId());
+            m.put("studentId", s.getStudentId());
+            m.put("studentNo", st != null ? st.getStudentNo() : "-");
+            m.put("nickname", st != null ? st.getNickname() : "-");
+            m.put("avatar", st != null ? st.getAvatar() : null);
+            m.put("realName", s.getRealName());
+            m.put("phone", s.getPhone());
+            m.put("remark", s.getRemark());
+            m.put("status", s.getStatus());
+            m.put("signTime", s.getSignTime());
+            list.add(m);
+        }
+        return Result.success(list);
+    }
+
+    @PostMapping("/activity/auditSign")
+    public Result<?> auditSign(Integer signId, Integer status, HttpSession session) {
+        SysAdmin admin = getAdmin(session);
+        if (admin == null) return Result.error("无权限或未登录");
+        SysActivitySign sign = activitySignMapper.selectById(signId);
+        if (sign == null) return Result.error("报名记录不存在");
+        SysActivity activity = activityMapper.selectById(sign.getActivityId());
+        if (activity == null || !activity.getCommunityId().equals(admin.getCommunityId()))
+            return Result.error("越权操作");
+        sign.setStatus(status);
+        activitySignMapper.updateById(sign);
+        return Result.success(status == 1 ? "已通过该报名申请" : "已拒绝该报名申请");
+    }
+
+    // ===================== 待审核成员详情（补充接口）=====================
+
+    @GetMapping("/member/auditDetail")
+    public Result<Map<String, Object>> getAuditMemberDetail(Integer recordId, HttpSession session) {
+        SysAdmin admin = getAdmin(session);
+        if (admin == null) return Result.error("无权限或未登录");
+        SysCommunityMember record = memberMapper.selectById(recordId);
+        if (record == null || !record.getCommunityId().equals(admin.getCommunityId()))
+            return Result.error("记录不存在或越权");
+        SysStudent s = studentMapper.selectById(record.getStudentId());
+        if (s == null) return Result.error("用户不存在");
+        Map<String, Object> m = new HashMap<>();
+        m.put("studentNo", s.getStudentNo());
+        m.put("nickname", s.getNickname());
+        m.put("avatar", s.getAvatar());
+        m.put("intro", s.getIntro());
+        m.put("phone", s.getPhone());
+        m.put("email", s.getEmail());
+        return Result.success(m);
     }
 }

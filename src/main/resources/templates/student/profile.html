@@ -20,15 +20,16 @@
                 </div>
             </div>
             <div class="flex items-center space-x-5 relative">
-                <div class="group relative cursor-pointer flex items-center space-x-2">
+                <div class="relative cursor-pointer flex items-center space-x-2" onclick="document.getElementById('nav-user-menu').classList.toggle('hidden')">
                     <img id="navAvatar" src="" class="h-9 w-9 rounded-full object-cover shadow-sm border border-gray-200 hidden">
                     <div id="navAvatarFallback" class="h-9 w-9 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 shadow-sm border-2 border-white flex items-center justify-center text-white font-bold text-sm">我</div>
-
-                    <div class="hidden group-hover:block absolute right-0 top-full mt-1 w-32 bg-white rounded-xl shadow-lg py-2 border border-gray-100">
-                        <a href="/student/profile" class="block px-4 py-2 text-sm text-indigo-600 bg-indigo-50 font-medium">个人信息</a>
-                        <div class="border-t border-gray-100 my-1"></div>
-                        <a href="/" class="block px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium">退出登录</a>
-                    </div>
+                </div>
+                <div id="nav-user-menu" class="hidden absolute right-0 top-full mt-1 w-36 bg-white rounded-xl shadow-lg py-2 border border-gray-100 z-30">
+                    <a href="/student/profile" class="block px-4 py-2 text-sm text-indigo-600 bg-indigo-50 font-medium">个人信息</a>
+                    <div class="border-t border-gray-100 my-1"></div>
+                    <button onclick="document.getElementById('create-community-modal').classList.remove('hidden')" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 font-medium">创建群聊</button>
+                    <div class="border-t border-gray-100 my-1"></div>
+                    <a href="/" class="block px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium">退出登录</a>
                 </div>
             </div>
         </div>
@@ -183,6 +184,66 @@
             alert(res.msg);
             if (res.code === 200) location.href = '/';
         });
+    }
+
+    document.addEventListener('click', e => {
+        const menu = document.getElementById('nav-user-menu');
+        if (menu && !e.target.closest('#nav-user-menu') && !e.target.closest('[onclick*="nav-user-menu"]')) {
+            menu.classList.add('hidden');
+        }
+    });
+</script>
+<!-- 创建群聊 Modal -->
+<div id="create-community-modal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-8">
+        <h3 class="text-lg font-bold text-gray-800 mb-6">申请创建社群</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">社群名称 <span class="text-red-400">*</span></label>
+                <input type="text" id="cc-name" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="例如：街舞爱好者联盟">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">社群简介</label>
+                <textarea id="cc-desc" rows="3" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 resize-none" placeholder="介绍社群的主题和特色..."></textarea>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-500 mb-1">社群分类</label>
+                <select id="cc-category" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 bg-white">
+                    <option value="音乐">音乐</option><option value="科技">科技</option><option value="摄影">摄影</option>
+                    <option value="游戏">游戏</option><option value="体育">体育</option><option value="艺术">艺术</option>
+                    <option value="学习">学习</option><option value="生活">生活</option><option value="其他">其他</option>
+                </select>
+            </div>
+            <p class="text-xs text-gray-400 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">提交后需要平台管理员审核，审核通过后你将自动成为该社群的管理员，可使用你的学号和密码登录社群管理后台。</p>
+            <div id="cc-msg" class="hidden text-sm px-3 py-2 rounded-lg"></div>
+            <div class="flex space-x-3">
+                <button onclick="document.getElementById('create-community-modal').classList.add('hidden')" class="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-lg hover:bg-gray-50 font-medium">取消</button>
+                <button onclick="submitCreateCommunity()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg font-medium">提交申请</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function submitCreateCommunity() {
+        const name = document.getElementById('cc-name').value.trim();
+        const desc = document.getElementById('cc-desc').value.trim();
+        const cat = document.getElementById('cc-category').value;
+        if (!name) return showCCMsg('社群名称不能为空', true);
+        const fd = new URLSearchParams();
+        fd.append('name', name); fd.append('description', desc); fd.append('category', cat);
+        fetch('/api/student/community/create', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
+            if (res.code === 200) {
+                showCCMsg(res.msg, false);
+                setTimeout(() => document.getElementById('create-community-modal').classList.add('hidden'), 2000);
+            } else showCCMsg(res.msg, true);
+        });
+    }
+    function showCCMsg(text, isError) {
+        const el = document.getElementById('cc-msg');
+        el.textContent = text;
+        el.className = isError ? 'text-sm px-3 py-2 rounded-lg bg-red-50 text-red-600' : 'text-sm px-3 py-2 rounded-lg bg-green-50 text-green-600';
+        el.classList.remove('hidden');
     }
 </script>
 </body>

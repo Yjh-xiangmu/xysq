@@ -2,21 +2,13 @@ package com.xysq.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xysq.common.Result;
-import com.xysq.entity.SysCommunity;
-import com.xysq.entity.SysCommunityMember;
-import com.xysq.entity.SysStudent;
-import com.xysq.entity.SysAnnouncement;
-import com.xysq.mapper.SysAnnouncementMapper;
-import com.xysq.mapper.SysCommunityMapper;
-import com.xysq.mapper.SysCommunityMemberMapper;
+import com.xysq.entity.*;
+import com.xysq.mapper.*;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/student")
@@ -25,6 +17,9 @@ public class StudentCommunityController {
     @Autowired private SysCommunityMapper communityMapper;
     @Autowired private SysCommunityMemberMapper memberMapper;
     @Autowired private SysAnnouncementMapper announcementMapper;
+    @Autowired private SysStudentMapper studentMapper;
+    @Autowired private SysAdminMapper adminMapper;
+    @Autowired private SysReportMapper reportMapper;
 
     // 获取所有社群列表（广场）- 支持关键词和分类搜索
     @GetMapping("/community/list")
@@ -37,6 +32,7 @@ public class StudentCommunityController {
         Integer studentId = (student != null) ? student.getId() : null;
 
         QueryWrapper<SysCommunity> wrapper = new QueryWrapper<>();
+        wrapper.eq("status", 1); // 只显示已审核通过的社群
         if (keyword != null && !keyword.trim().isEmpty()) {
             wrapper.and(w -> w.like("name", keyword.trim()).or().like("description", keyword.trim()));
         }
@@ -120,5 +116,78 @@ public class StudentCommunityController {
         memberMapper.delete(new QueryWrapper<SysCommunityMember>()
                 .eq("community_id", communityId).eq("student_id", student.getId()));
         return Result.success("已退出该社群");
+    }
+
+    // 查看社群成员列表（学生端）
+    @GetMapping("/community/{id}/members")
+    public Result<Map<String, Object>> getCommunityMembers(@PathVariable Integer id, HttpSession session) {
+        SysStudent student = (SysStudent) session.getAttribute("user");
+        if (student == null) return Result.error("请先登录");
+
+        SysCommunity community = communityMapper.selectById(id);
+        if (community == null) return Result.error("社群不存在");
+
+        List<SysCommunityMember> members = memberMapper.selectList(new QueryWrapper<SysCommunityMember>()
+                .eq("community_id", id).eq("status", 1));
+        List<Map<String, Object>> memberList = new ArrayList<>();
+        for (SysCommunityMember m : members) {
+            SysStudent s = studentMapper.selectById(m.getStudentId());
+            if (s == null) continue;
+            Map<String, Object> item = new HashMap<>();
+            item.put("studentId", s.getId());
+            item.put("studentNo", s.getStudentNo());
+            item.put("nickname", s.getNickname());
+            item.put("avatar", s.getAvatar());
+            item.put("intro", s.getIntro());
+            item.put("phone", s.getPhone());
+            item.put("email", s.getEmail());
+            memberList.add(item);
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("communityName", community.getName());
+        result.put("description", community.getDescription());
+        result.put("memberCount", members.size());
+        result.put("members", memberList);
+        return Result.success(result);
+    }
+
+    // 学生申请创建社群
+    @PostMapping("/community/create")
+    public Result<?> createCommunity(String name, String description, String category, HttpSession session) {
+        SysStudent student = (SysStudent) session.getAttribute("user");
+        if (student == null) return Result.error("请先登录");
+        if (name == null || name.trim().isEmpty()) return Result.error("社群名称不能为空");
+
+        long nameExist = communityMapper.selectCount(new QueryWrapper<SysCommunity>().eq("name", name.trim()));
+        if (nameExist > 0) return Result.error("社群名称已存在");
+
+        SysCommunity community = new SysCommunity();
+        community.setName(name.trim());
+        community.setDescription(description != null ? description.trim() : "");
+        community.setCategory(category != null && !category.trim().isEmpty() ? category.trim() : "其他");
+        community.setAvatar("https://api.dicebear.com/7.x/bottts/svg?seed=" + System.currentTimeMillis());
+        community.setIsRecommended(0);
+        community.setStatus(0); // 待审核
+        community.setCreatorStudentId(student.getId());
+        communityMapper.insert(community);
+        return Result.success("社群创建申请已提交，等待平台管理员审核！");
+    }
+
+    // 举报社群
+    @PostMapping("/community/report")
+    public Result<?> reportCommunity(Integer communityId, String reason, HttpSession session) {
+        SysStudent student = (SysStudent) session.getAttribute("user");
+        if (student == null) return Result.error("请先登录");
+        if (reason == null || reason.trim().isEmpty()) return Result.error("举报原因不能为空");
+        SysCommunity community = communityMapper.selectById(communityId);
+        if (community == null) return Result.error("社群不存在");
+
+        SysReport report = new SysReport();
+        report.setReporterId(student.getId());
+        report.setCommunityId(communityId);
+        report.setReason(reason.trim());
+        report.setStatus(0);
+        reportMapper.insert(report);
+        return Result.success("举报已提交，平台管理员将尽快处理！");
     }
 }

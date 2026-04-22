@@ -7,7 +7,6 @@
 </head>
 <body class="bg-gray-50 font-sans flex h-screen overflow-hidden">
 
-<!-- 侧边栏 -->
 <div class="bg-blue-800 shadow-xl w-64 flex flex-col z-20">
     <div class="text-white text-xl font-bold p-5 flex items-center border-b border-blue-700">
         <span class="mr-2">🎯</span> 社群运营中心
@@ -24,47 +23,67 @@
     </div>
 </div>
 
-<!-- 主内容 -->
 <div class="flex-1 flex flex-col overflow-hidden">
     <header class="bg-white shadow-sm p-5 flex justify-between items-center border-b border-gray-100">
         <h2 class="text-lg font-bold text-gray-800">个人信息管理</h2>
         <div class="flex items-center space-x-3">
-            <span class="text-sm font-medium text-gray-600">社长</span>
-            <div class="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">社</div>
+            <span id="header-nickname" class="text-sm font-medium text-gray-600">社长</span>
+            <div id="header-avatar-wrap" class="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200 overflow-hidden">社</div>
         </div>
     </header>
 
     <main class="flex-1 overflow-y-auto bg-gray-50 p-8">
-        <div class="max-w-lg mx-auto">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-                <div class="flex items-center space-x-4 mb-8 pb-6 border-b border-gray-100">
-                    <div class="h-16 w-16 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow">社</div>
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-800">社群管理员</h3>
-                        <p class="text-sm text-gray-400">修改登录密码以保护账号安全</p>
-                    </div>
-                </div>
+        <div class="max-w-lg mx-auto space-y-6">
 
+            <!-- 基本信息卡片 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+                <h4 class="text-base font-semibold text-gray-700 mb-6 pb-4 border-b border-gray-100">基本信息</h4>
+                <div class="flex flex-col items-center mb-6">
+                    <div class="relative">
+                        <div id="avatar-display" class="h-20 w-20 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white text-2xl font-bold shadow overflow-hidden cursor-pointer" onclick="document.getElementById('avatar-input').click()">社</div>
+                        <div class="absolute bottom-0 right-0 h-6 w-6 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer" onclick="document.getElementById('avatar-input').click()">
+                            <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        </div>
+                    </div>
+                    <input type="file" id="avatar-input" accept="image/*" class="hidden" onchange="previewAvatar(event)">
+                    <p class="text-xs text-gray-400 mt-2">点击头像更换</p>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">昵称</label>
+                        <input type="text" id="nickname" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="请输入昵称">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">手机号</label>
+                        <input type="text" id="phone" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="请输入手机号">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">邮箱</label>
+                        <input type="email" id="email" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="请输入邮箱">
+                    </div>
+                    <div id="info-msg" class="hidden text-sm px-4 py-2 rounded-lg"></div>
+                    <button onclick="updateProfile()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition-colors shadow-sm">保存基本信息</button>
+                </div>
+            </div>
+
+            <!-- 修改密码卡片 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
                 <h4 class="text-base font-semibold text-gray-700 mb-4">修改密码</h4>
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-600 mb-1">当前密码</label>
-                        <input type="password" id="oldPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" placeholder="请输入当前密码">
+                        <input type="password" id="oldPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="请输入当前密码">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-600 mb-1">新密码</label>
-                        <input type="password" id="newPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" placeholder="新密码（至少6位）">
+                        <input type="password" id="newPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="新密码（至少6位）">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-600 mb-1">确认新密码</label>
-                        <input type="password" id="confirmPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" placeholder="再次输入新密码">
+                        <input type="password" id="confirmPwd" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="再次输入新密码">
                     </div>
-
-                    <div id="msg-area" class="hidden text-sm px-4 py-2 rounded-lg"></div>
-
-                    <button onclick="updatePassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition-colors shadow-sm mt-2">
-                        确认修改密码
-                    </button>
+                    <div id="pwd-msg" class="hidden text-sm px-4 py-2 rounded-lg"></div>
+                    <button onclick="updatePassword()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition-colors shadow-sm">确认修改密码</button>
                 </div>
             </div>
         </div>
@@ -72,12 +91,59 @@
 </div>
 
 <script>
-    function showMsg(text, isError) {
-        const el = document.getElementById('msg-area');
+    let pendingAvatarFile = null;
+
+    document.addEventListener('DOMContentLoaded', loadProfile);
+
+    function loadProfile() {
+        fetch('/api/community/admin/profile').then(r => r.json()).then(res => {
+            if (res.code === 200) {
+                const d = res.data;
+                document.getElementById('nickname').value = d.nickname || '';
+                document.getElementById('phone').value = d.phone || '';
+                document.getElementById('email').value = d.email || '';
+                document.getElementById('header-nickname').textContent = d.nickname || '社长';
+                const avatarDisplay = document.getElementById('avatar-display');
+                const headerWrap = document.getElementById('header-avatar-wrap');
+                if (d.avatar) {
+                    avatarDisplay.innerHTML = `<img src="${d.avatar}" class="w-full h-full object-cover">`;
+                    headerWrap.innerHTML = `<img src="${d.avatar}" class="w-full h-full object-cover">`;
+                } else {
+                    const ch = (d.nickname || '社').charAt(0);
+                    avatarDisplay.textContent = ch;
+                    headerWrap.textContent = ch;
+                }
+            }
+        });
+    }
+
+    function previewAvatar(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        pendingAvatarFile = file;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            document.getElementById('avatar-display').innerHTML = `<img src="${ev.target.result}" class="w-full h-full object-cover">`;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function updateProfile() {
+        const fd = new FormData();
+        fd.append('nickname', document.getElementById('nickname').value.trim());
+        fd.append('phone', document.getElementById('phone').value.trim());
+        fd.append('email', document.getElementById('email').value.trim());
+        if (pendingAvatarFile) fd.append('avatarFile', pendingAvatarFile);
+        fetch('/api/community/admin/profile/update', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
+            showMsg('info-msg', res.msg, res.code !== 200);
+            if (res.code === 200) { pendingAvatarFile = null; loadProfile(); }
+        });
+    }
+
+    function showMsg(id, text, isError) {
+        const el = document.getElementById(id);
         el.textContent = text;
-        el.className = isError
-            ? 'text-sm px-4 py-2 rounded-lg bg-red-50 text-red-600'
-            : 'text-sm px-4 py-2 rounded-lg bg-green-50 text-green-600';
+        el.className = isError ? 'text-sm px-4 py-2 rounded-lg bg-red-50 text-red-600' : 'text-sm px-4 py-2 rounded-lg bg-green-50 text-green-600';
         el.classList.remove('hidden');
         setTimeout(() => el.classList.add('hidden'), 3000);
     }
@@ -86,24 +152,21 @@
         const oldPwd = document.getElementById('oldPwd').value.trim();
         const newPwd = document.getElementById('newPwd').value.trim();
         const confirmPwd = document.getElementById('confirmPwd').value.trim();
-        if (!oldPwd || !newPwd || !confirmPwd) return showMsg('请填写所有字段', true);
-        if (newPwd !== confirmPwd) return showMsg('两次新密码不一致', true);
-        if (newPwd.length < 6) return showMsg('新密码不能少于6位', true);
-
+        if (!oldPwd || !newPwd || !confirmPwd) return showMsg('pwd-msg', '请填写所有字段', true);
+        if (newPwd !== confirmPwd) return showMsg('pwd-msg', '两次新密码不一致', true);
+        if (newPwd.length < 6) return showMsg('pwd-msg', '新密码不能少于6位', true);
         const fd = new URLSearchParams();
         fd.append('oldPwd', oldPwd);
         fd.append('newPwd', newPwd);
-        fetch('/api/community/admin/pwd/update', { method: 'POST', body: fd })
-            .then(r => r.json())
-            .then(res => {
-                if (res.code === 200) {
-                    showMsg(res.msg, false);
-                    document.getElementById('oldPwd').value = '';
-                    document.getElementById('newPwd').value = '';
-                    document.getElementById('confirmPwd').value = '';
-                    setTimeout(() => location.href = '/', 1500);
-                } else showMsg(res.msg, true);
-            });
+        fetch('/api/community/admin/pwd/update', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
+            showMsg('pwd-msg', res.msg, res.code !== 200);
+            if (res.code === 200) {
+                document.getElementById('oldPwd').value = '';
+                document.getElementById('newPwd').value = '';
+                document.getElementById('confirmPwd').value = '';
+                setTimeout(() => location.href = '/', 1500);
+            }
+        });
     }
 </script>
 </body>

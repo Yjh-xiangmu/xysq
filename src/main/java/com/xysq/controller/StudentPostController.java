@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xysq.common.Result;
 import com.xysq.entity.*;
 import com.xysq.mapper.*;
+import com.xysq.mapper.SysFollowMapper;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -26,6 +27,7 @@ public class StudentPostController {
     @Autowired private SysActivitySignMapper activitySignMapper;
     @Autowired private SysPostLikeMapper postLikeMapper;
     @Autowired private SysCommunityMapper communityMapper;
+    @Autowired private SysFollowMapper followMapper;
 
     @GetMapping("/student/community/{id}")
     public String communityDetail(@PathVariable("id") Integer communityId, Model model, HttpSession session) {
@@ -45,6 +47,7 @@ public class StudentPostController {
     @PostMapping("/api/student/post/publish")
     public Result<?> publishPost(Integer communityId, String content,
                                  @RequestParam(value = "image", required = false) MultipartFile image,
+                                 @RequestParam(value = "scheduledTime", required = false) String scheduledTime,
                                  HttpSession session) {
         Object userObj = session.getAttribute("user");
         if (!(userObj instanceof SysStudent)) return Result.error("请先登录学生账号");
@@ -59,24 +62,31 @@ public class StudentPostController {
         post.setStudentId(student.getId());
         post.setContent(content);
 
-        // 处理图片保存
         if (image != null && !image.isEmpty()) {
             try {
                 String fileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
-                // 这里的路径就是你刚才创建的文件夹
                 String uploadPath = System.getProperty("user.dir") + "/uploads/posts/";
                 File dest = new File(uploadPath + fileName);
                 image.transferTo(dest);
-                // 存入数据库的相对路径
                 post.setImageUrl("/uploads/posts/" + fileName);
             } catch (Exception e) {
                 return Result.error("图片上传失败");
             }
         }
 
+        if (scheduledTime != null && !scheduledTime.trim().isEmpty()) {
+            try {
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
+                Date st = sdf.parse(scheduledTime.trim());
+                if (st.after(new Date())) {
+                    post.setScheduledTime(st);
+                }
+            } catch (Exception ignored) {}
+        }
+
         post.setStatus(1);
         postMapper.insert(post);
-        return Result.success("发布成功！");
+        return Result.success(post.getScheduledTime() != null ? "定时发布已设置！" : "发布成功！");
     }
 
     @ResponseBody
@@ -87,7 +97,9 @@ public class StudentPostController {
         if (userObj instanceof SysStudent) currentStudentId = ((SysStudent) userObj).getId();
 
         List<SysPost> posts = postMapper.selectList(new QueryWrapper<SysPost>()
-                .eq("community_id", communityId).eq("status", 1).orderByDesc("create_time"));
+                .eq("community_id", communityId).eq("status", 1)
+                .and(w -> w.isNull("scheduled_time").or().le("scheduled_time", new Date()))
+                .orderByDesc("create_time"));
         if (posts.isEmpty()) return Result.success(Collections.emptyList());
 
         Set<Integer> studentIds = new HashSet<>();
@@ -250,11 +262,14 @@ public class StudentPostController {
                     new QueryWrapper<SysActivitySign>().eq("activity_id", act.getId()));
             map.put("signCount", signCount);
             boolean isSigned = false;
+            Integer signStatus = null;
             if (student != null) {
-                isSigned = activitySignMapper.selectCount(new QueryWrapper<SysActivitySign>()
-                        .eq("activity_id", act.getId()).eq("student_id", student.getId())) > 0;
+                SysActivitySign mySign = activitySignMapper.selectOne(new QueryWrapper<SysActivitySign>()
+                        .eq("activity_id", act.getId()).eq("student_id", student.getId()));
+                if (mySign != null) { isSigned = true; signStatus = mySign.getStatus(); }
             }
             map.put("isSigned", isSigned);
+            map.put("signStatus", signStatus);
             result.add(map);
         }
         return Result.success(result);
@@ -317,29 +332,121 @@ public class StudentPostController {
         return Result.success("删除成功");
     }
 
+    // 活动报名（填写个人信息，状态为待审核）
     @ResponseBody
     @PostMapping("/api/student/activity/sign")
-    public Result<?> signActivity(Integer activityId, HttpSession session) {
+    public Result<?> signActivity(Integer activityId, String realName, String phone, String remark,
+                                  HttpSession session) {
         Object userObj = session.getAttribute("user");
         if (!(userObj instanceof SysStudent)) return Result.error("请先登录学生账号");
         SysStudent student = (SysStudent) userObj;
         long exist = activitySignMapper.selectCount(new QueryWrapper<SysActivitySign>()
                 .eq("activity_id", activityId).eq("student_id", student.getId()));
-        if (exist > 0) return Result.error("您已经报名过该活动了");
+        if (exist > 0) return Result.error("您已经提交过报名申请了");
+        if (realName == null || realName.trim().isEmpty()) return Result.error("请填写真实姓名");
+        if (phone == null || phone.trim().isEmpty()) return Result.error("请填写联系电话");
         SysActivitySign sign = new SysActivitySign();
         sign.setActivityId(activityId);
         sign.setStudentId(student.getId());
+        sign.setStatus(0); // 待审核
+        sign.setRealName(realName.trim());
+        sign.setPhone(phone.trim());
+        sign.setRemark(remark != null ? remark.trim() : "");
         activitySignMapper.insert(sign);
-        return Result.success("报名成功！");
+        return Result.success("报名申请已提交，等待社群管理员审核！");
+    }
+
+    // 我评论过的内容
+    @ResponseBody
+    @GetMapping("/api/student/my-comments")
+    public Result<List<Map<String, Object>>> getMyComments(HttpSession session) {
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof SysStudent student)) return Result.error("请先登录");
+
+        List<SysComment> comments = commentMapper.selectList(new QueryWrapper<SysComment>()
+                .eq("student_id", student.getId()).orderByDesc("create_time"));
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SysComment c : comments) {
+            SysPost post = postMapper.selectById(c.getPostId());
+            SysCommunity community = post != null ? communityMapper.selectById(post.getCommunityId()) : null;
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", c.getId());
+            m.put("content", c.getContent());
+            m.put("createTime", c.getCreateTime());
+            m.put("postContent", post != null ? post.getContent() : "帖子已删除");
+            m.put("communityName", community != null ? community.getName() : "未知社群");
+            m.put("communityId", post != null ? post.getCommunityId() : null);
+            result.add(m);
+        }
+        return Result.success(result);
+    }
+
+    // 我赞过的内容
+    @ResponseBody
+    @GetMapping("/api/student/my-likes")
+    public Result<List<Map<String, Object>>> getMyLikes(HttpSession session) {
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof SysStudent student)) return Result.error("请先登录");
+
+        List<SysPostLike> likes = postLikeMapper.selectList(new QueryWrapper<SysPostLike>()
+                .eq("student_id", student.getId()).orderByDesc("create_time"));
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SysPostLike like : likes) {
+            SysPost post = postMapper.selectById(like.getPostId());
+            if (post == null) continue;
+            SysStudent author = studentMapper.selectById(post.getStudentId());
+            SysCommunity community = communityMapper.selectById(post.getCommunityId());
+            Map<String, Object> m = new HashMap<>();
+            m.put("postId", post.getId());
+            m.put("content", post.getContent());
+            m.put("imageUrl", post.getImageUrl());
+            m.put("createTime", post.getCreateTime());
+            m.put("authorName", author != null ? author.getNickname() : "匿名");
+            m.put("communityName", community != null ? community.getName() : "未知社群");
+            m.put("communityId", post.getCommunityId());
+            result.add(m);
+        }
+        return Result.success(result);
+    }
+
+    // 搜索社群内帖子
+    @ResponseBody
+    @GetMapping("/api/student/community/{id}/search")
+    public Result<List<Map<String, Object>>> searchCommunityPosts(@PathVariable("id") Integer communityId,
+                                                                   String keyword, HttpSession session) {
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof SysStudent student)) return Result.error("请先登录");
+        if (keyword == null || keyword.trim().isEmpty()) return Result.success(Collections.emptyList());
+
+        List<SysPost> posts = postMapper.selectList(new QueryWrapper<SysPost>()
+                .eq("community_id", communityId).eq("status", 1)
+                .like("content", keyword.trim()).orderByDesc("create_time"));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SysPost p : posts) {
+            SysStudent author = studentMapper.selectById(p.getStudentId());
+            Map<String, Object> m = new HashMap<>();
+            m.put("id", p.getId());
+            m.put("content", p.getContent());
+            m.put("imageUrl", p.getImageUrl());
+            m.put("createTime", p.getCreateTime());
+            m.put("authorName", author != null ? author.getNickname() : "匿名");
+            m.put("authorAvatar", author != null ? author.getAvatar() : null);
+            result.add(m);
+        }
+        return Result.success(result);
     }
 
     @ResponseBody
     @GetMapping("/api/student/activity/all")
     public Result<List<Map<String, Object>>> getAllActivities(HttpSession session) {
         SysStudent student = (SysStudent) session.getAttribute("user");
+        Date sevenDaysAgo = new Date(System.currentTimeMillis() - 7L * 24 * 3600 * 1000);
+        Date now = new Date();
 
+        // 只显示7天内的活动（未来 + 7天内结束的）
         List<SysActivity> activities = activityMapper.selectList(
-                new QueryWrapper<SysActivity>().orderByDesc("event_time"));
+                new QueryWrapper<SysActivity>().ge("event_time", sevenDaysAgo).orderByAsc("event_time"));
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (SysActivity act : activities) {
@@ -357,11 +464,99 @@ public class StudentPostController {
             map.put("content", act.getContent());
             map.put("location", act.getLocation());
             map.put("eventTime", act.getEventTime());
+            map.put("endTime", act.getEndTime());
             map.put("signCount", signCount);
             map.put("isSigned", isSigned);
+            map.put("isExpired", act.getEndTime() != null ? act.getEndTime().before(now) : act.getEventTime() != null && act.getEventTime().before(now));
             map.put("communityName", community != null ? community.getName() : "未知社群");
             result.add(map);
         }
         return Result.success(result);
+    }
+
+    // 历史活动：超过7天且学生已参与过的
+    @ResponseBody
+    @GetMapping("/api/student/activity/history")
+    public Result<List<Map<String, Object>>> getActivityHistory(HttpSession session) {
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof SysStudent student)) return Result.error("请先登录");
+        Date sevenDaysAgo = new Date(System.currentTimeMillis() - 7L * 24 * 3600 * 1000);
+
+        List<SysActivitySign> signs = activitySignMapper.selectList(
+                new QueryWrapper<SysActivitySign>().eq("student_id", student.getId()));
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SysActivitySign sign : signs) {
+            SysActivity act = activityMapper.selectById(sign.getActivityId());
+            if (act == null) continue;
+            Date effectiveEnd = act.getEndTime() != null ? act.getEndTime() : act.getEventTime();
+            if (effectiveEnd == null || !effectiveEnd.before(sevenDaysAgo)) continue;
+            SysCommunity community = communityMapper.selectById(act.getCommunityId());
+            long signCount = activitySignMapper.selectCount(
+                    new QueryWrapper<SysActivitySign>().eq("activity_id", act.getId()));
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", act.getId());
+            map.put("title", act.getTitle());
+            map.put("location", act.getLocation());
+            map.put("eventTime", act.getEventTime());
+            map.put("signCount", signCount);
+            map.put("isExpired", true);
+            map.put("communityName", community != null ? community.getName() : "未知社群");
+            map.put("signStatus", sign.getStatus());
+            result.add(map);
+        }
+        result.sort((a, b) -> ((Date) b.get("eventTime")).compareTo((Date) a.get("eventTime")));
+        return Result.success(result);
+    }
+
+    // 我的日程：未来且已审核通过的报名活动
+    @ResponseBody
+    @GetMapping("/api/student/activity/schedule")
+    public Result<List<Map<String, Object>>> getMySchedule(HttpSession session) {
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof SysStudent student)) return Result.error("请先登录");
+        Date now = new Date();
+
+        List<SysActivitySign> signs = activitySignMapper.selectList(
+                new QueryWrapper<SysActivitySign>().eq("student_id", student.getId()).eq("status", 1));
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (SysActivitySign sign : signs) {
+            SysActivity act = activityMapper.selectById(sign.getActivityId());
+            if (act == null) continue;
+            Date effectiveEnd = act.getEndTime() != null ? act.getEndTime() : act.getEventTime();
+            if (effectiveEnd == null || !effectiveEnd.after(now)) continue;
+            SysCommunity community = communityMapper.selectById(act.getCommunityId());
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", act.getId());
+            map.put("title", act.getTitle());
+            map.put("location", act.getLocation());
+            map.put("eventTime", act.getEventTime());
+            map.put("content", act.getContent());
+            map.put("communityName", community != null ? community.getName() : "未知社群");
+            result.add(map);
+        }
+        result.sort(Comparator.comparing(m -> (Date) m.get("eventTime")));
+        return Result.success(result);
+    }
+
+    // 消息提示：最近24小时内收到的新评论数（不含自己）
+    @ResponseBody
+    @GetMapping("/api/student/notifications/count")
+    public Result<Map<String, Object>> getNotificationCount(HttpSession session) {
+        Object userObj = session.getAttribute("user");
+        if (!(userObj instanceof SysStudent student)) {
+            Map<String, Object> d = new HashMap<>(); d.put("count", 0); return Result.success(d);
+        }
+        Date since = new Date(System.currentTimeMillis() - 24L * 3600 * 1000);
+        List<SysPost> myPosts = postMapper.selectList(
+                new QueryWrapper<SysPost>().eq("student_id", student.getId()));
+        if (myPosts.isEmpty()) {
+            Map<String, Object> d = new HashMap<>(); d.put("count", 0); return Result.success(d);
+        }
+        List<Integer> postIds = myPosts.stream().map(SysPost::getId).collect(Collectors.toList());
+        long count = commentMapper.selectCount(new QueryWrapper<SysComment>()
+                .in("post_id", postIds).ne("student_id", student.getId()).ge("create_time", since));
+        Map<String, Object> data = new HashMap<>();
+        data.put("count", count);
+        return Result.success(data);
     }
 }

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>我的关注 - 兴趣Share</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans pt-16">
+<nav class="bg-white shadow-sm fixed w-full z-20 top-0 border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex space-x-8">
+                <div class="flex-shrink-0 flex items-center">
+                    <span class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 tracking-tighter">兴趣Share</span>
+                </div>
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="/student/index" class="text-gray-500 hover:text-indigo-600 font-medium transition px-1 py-2">社群广场</a>
+                    <a href="/student/activities" class="text-gray-500 hover:text-indigo-600 font-medium transition px-1 py-2">参与社群活动</a>
+                    <a href="/student/posts" class="text-gray-500 hover:text-indigo-600 font-medium transition px-1 py-2">帖子管理</a>
+                </div>
+            </div>
+            <div class="flex items-center space-x-5 relative">
+                <div class="relative cursor-pointer flex items-center space-x-2" onclick="document.getElementById('nav-user-menu').classList.toggle('hidden')">
+                    <img id="navAvatar" src="" class="h-9 w-9 rounded-full object-cover shadow-sm border border-gray-200 hidden">
+                    <div id="navAvatarFallback" class="h-9 w-9 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 shadow-sm border-2 border-white flex items-center justify-center text-white font-bold text-sm">我</div>
+                </div>
+                <div id="nav-user-menu" class="hidden absolute right-0 top-full mt-1 w-36 bg-white rounded-xl shadow-lg py-2 border border-gray-100 z-30">
+                    <a href="/student/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">个人信息</a>
+                    <div class="border-t border-gray-100 my-1"></div>
+                    <a href="/" class="block px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-3xl mx-auto px-4 py-8 mt-4">
+    <div class="flex space-x-2 mb-6 border-b border-gray-200">
+        <button onclick="switchTab('following')" id="tab-following" class="px-5 py-2.5 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 -mb-px transition-colors">我的关注</button>
+        <button onclick="switchTab('followers')" id="tab-followers" class="px-5 py-2.5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px transition-colors">我的粉丝</button>
+    </div>
+    <div id="follow-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+</main>
+
+<!-- 用户详情 Modal -->
+<div id="user-modal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 overflow-hidden relative">
+        <button onclick="document.getElementById('user-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10">×</button>
+        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 h-24"></div>
+        <div class="px-6 pb-6 relative">
+            <div class="flex justify-center -mt-10 mb-3">
+                <div id="um-avatar" class="h-20 w-20 rounded-full border-4 border-white shadow-md bg-white overflow-hidden"></div>
+            </div>
+            <div class="text-center mb-4">
+                <h3 id="um-nickname" class="text-lg font-bold text-gray-800"></h3>
+                <p id="um-intro" class="text-sm text-gray-500 mt-1"></p>
+            </div>
+            <div class="flex justify-center space-x-8 mb-4">
+                <div class="text-center"><div id="um-likes" class="font-bold text-gray-800">-</div><div class="text-xs text-gray-400">获赞</div></div>
+                <div class="text-center"><div id="um-follows" class="font-bold text-gray-800">-</div><div class="text-xs text-gray-400">关注</div></div>
+            </div>
+            <div class="flex space-x-3 mb-4">
+                <button id="um-follow-btn" class="flex-1 py-2 rounded-lg text-sm font-medium transition-colors">关注</button>
+                <button id="um-msg-btn" class="flex-1 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors" onclick="">私信</button>
+            </div>
+            <div id="um-comments-section">
+                <h5 class="text-xs font-semibold text-gray-500 uppercase mb-2">最近评论</h5>
+                <div id="um-comments" class="space-y-2 max-h-40 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadNavAvatar();
+        switchTab('following');
+    });
+
+    function switchTab(tab) {
+        ['following','followers'].forEach(t => {
+            document.getElementById(`tab-${t}`).className = 'px-5 py-2.5 text-sm font-semibold border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px transition-colors';
+        });
+        document.getElementById(`tab-${tab}`).className = 'px-5 py-2.5 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 -mb-px transition-colors';
+        if (tab === 'following') loadFollowList();
+        else loadFollowerList();
+    }
+
+    function loadFollowerList() {
+        fetch('/api/student/follow/followers').then(r => r.json()).then(res => {
+            const container = document.getElementById('follow-list');
+            if (res.code !== 200 || !res.data || res.data.length === 0) {
+                container.innerHTML = '<div class="col-span-2 text-center py-20 bg-white rounded-xl border border-gray-200 text-gray-400">还没有人关注你</div>';
+                return;
+            }
+            container.innerHTML = res.data.map(u => `
+                <div onclick="showUserDetail(${u.studentId})" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center space-x-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+                    ${u.avatar ? `<img src="${u.avatar}" class="h-14 w-14 rounded-full object-cover flex-shrink-0 border border-gray-100">` : `<div class="h-14 w-14 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">${(u.nickname||'?').charAt(0)}</div>`}
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-gray-800 text-sm">${escapeHtml(u.nickname||'匿名')}</h4>
+                        <p class="text-xs text-gray-400 mt-1 truncate">${escapeHtml(u.intro||'暂无简介')}</p>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>`).join('');
+        });
+    }
+
+    function loadNavAvatar() {
+        fetch('/api/student/profile').then(r => r.json()).then(res => {
+            if (res.code === 200 && res.data.avatar) {
+                document.getElementById('navAvatar').src = res.data.avatar;
+                document.getElementById('navAvatar').classList.remove('hidden');
+                document.getElementById('navAvatarFallback').classList.add('hidden');
+            }
+        });
+    }
+
+    function loadFollowList() {
+        fetch('/api/student/follow/list').then(r => r.json()).then(res => {
+            const container = document.getElementById('follow-list');
+            if (res.code !== 200 || !res.data || res.data.length === 0) {
+                container.innerHTML = '<div class="col-span-2 text-center py-20 bg-white rounded-xl border border-gray-200 text-gray-400">还没有关注任何用户</div>';
+                return;
+            }
+            container.innerHTML = res.data.map(u => `
+                <div onclick="showUserDetail(${u.studentId})" class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center space-x-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer">
+                    ${u.avatar ? `<img src="${u.avatar}" class="h-14 w-14 rounded-full object-cover flex-shrink-0 border border-gray-100">` : `<div class="h-14 w-14 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">${(u.nickname||'?').charAt(0)}</div>`}
+                    <div class="flex-1 min-w-0">
+                        <h4 class="font-bold text-gray-800 text-sm">${escapeHtml(u.nickname||'匿名')}</h4>
+                        <p class="text-xs text-gray-400 mt-1 truncate">${escapeHtml(u.intro||'暂无简介')}</p>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </div>`).join('');
+        });
+    }
+
+    let currentUserId = null;
+    function showUserDetail(studentId) {
+        currentUserId = studentId;
+        document.getElementById('user-modal').classList.remove('hidden');
+        fetch(`/api/student/user/${studentId}/profile`).then(r => r.json()).then(res => {
+            if (res.code === 200) {
+                const u = res.data;
+                document.getElementById('um-nickname').textContent = u.nickname || '匿名';
+                document.getElementById('um-intro').textContent = u.intro || '暂无简介';
+                document.getElementById('um-likes').textContent = u.likeCount || 0;
+                document.getElementById('um-follows').textContent = u.followCount || 0;
+                const avatarEl = document.getElementById('um-avatar');
+                avatarEl.innerHTML = u.avatar ? `<img src="${u.avatar}" class="w-full h-full object-cover">` : `<div class="w-full h-full bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center text-white text-2xl font-bold">${(u.nickname||'?').charAt(0)}</div>`;
+
+                const followBtn = document.getElementById('um-follow-btn');
+                if (u.isFollowed) {
+                    followBtn.textContent = '已关注'; followBtn.className = 'flex-1 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors';
+                } else {
+                    followBtn.textContent = '+ 关注'; followBtn.className = 'flex-1 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors';
+                }
+                followBtn.onclick = () => toggleFollow(studentId);
+                document.getElementById('um-msg-btn').onclick = () => window.location.href = `/student/messages?with=${studentId}`;
+
+                const comments = u.comments || [];
+                const commEl = document.getElementById('um-comments');
+                if (comments.length === 0) { commEl.innerHTML = '<p class="text-xs text-gray-400">暂无评论记录</p>'; }
+                else commEl.innerHTML = comments.map(c => `<div class="bg-gray-50 rounded-lg p-2 text-xs text-gray-600">${escapeHtml(c.content)}</div>`).join('');
+            }
+        });
+    }
+
+    function toggleFollow(studentId) {
+        const fd = new URLSearchParams(); fd.append('followedId', studentId);
+        fetch('/api/student/follow/toggle', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
+            if (res.code === 200) { showUserDetail(studentId); loadFollowList(); }
+            else alert(res.msg);
+        });
+    }
+
+    function escapeHtml(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    document.addEventListener('click', e => {
+        const menu = document.getElementById('nav-user-menu');
+        if (menu && !e.target.closest('#nav-user-menu') && !e.target.closest('[onclick*="nav-user-menu"]')) {
+            menu.classList.add('hidden');
+        }
+    });
+</script>
+</body>
+</html>

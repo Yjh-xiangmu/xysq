@@ -11,5 +11,10 @@ public class SysAdmin {
     private String username;
     private String password;
     private Integer role; // 1平台管理员 2社群管理员
-    private Integer communityId; // 新增：该社长管理的社群ID
+    private Integer communityId;
+    private String nickname;
+    private String avatar;
+    private String phone;
+    private String email;
+    private Integer studentId; // 学生创群审批后绑定
 }

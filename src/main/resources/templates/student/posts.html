@@ -20,13 +20,14 @@
                 </div>
             </div>
             <div class="flex items-center space-x-5 relative">
-                <div class="group relative cursor-pointer flex items-center space-x-2">
-                    <div class="h-9 w-9 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 shadow-sm border-2 border-white flex items-center justify-center text-white font-bold text-sm">我</div>
-                    <div class="hidden group-hover:block absolute right-0 top-full mt-1 w-32 bg-white rounded-xl shadow-lg py-2 border border-gray-100">
-                        <a href="/student/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">个人信息</a>
-                        <div class="border-t border-gray-100 my-1"></div>
-                        <a href="/" class="block px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium">退出登录</a>
-                    </div>
+                <div class="relative cursor-pointer flex items-center space-x-2" onclick="document.getElementById('nav-user-menu').classList.toggle('hidden')">
+                    <img id="navAvatar" src="" class="h-9 w-9 rounded-full object-cover shadow-sm border border-gray-200 hidden">
+                    <div id="navAvatarFallback" class="h-9 w-9 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 shadow-sm border-2 border-white flex items-center justify-center text-white font-bold text-sm">我</div>
+                </div>
+                <div id="nav-user-menu" class="hidden absolute right-0 top-full mt-1 w-36 bg-white rounded-xl shadow-lg py-2 border border-gray-100 z-30">
+                    <a href="/student/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 font-medium">个人信息</a>
+                    <div class="border-t border-gray-100 my-1"></div>
+                    <a href="/" class="block px-4 py-2 text-sm text-red-500 hover:bg-red-50 font-medium">退出登录</a>
                 </div>
             </div>
         </div>
@@ -36,16 +37,96 @@
 <main class="max-w-4xl mx-auto px-4 py-10 mt-4">
     <div class="flex justify-between items-end mb-8 border-b pb-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">我发布的动态</h1>
-            <p class="text-sm text-gray-500 mt-1">在这里集中管理、编辑或删除你发布的所有帖子</p>
+            <h1 class="text-2xl font-bold text-gray-800">帖子管理</h1>
+            <p class="text-sm text-gray-500 mt-1">管理你发布的帖子，查看你评论过和赞过的内容</p>
+        </div>
+        <div class="flex space-x-2">
+            <button onclick="switchTab('posts')" id="tab-posts" class="px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white transition-colors">我发布的</button>
+            <button onclick="switchTab('comments')" id="tab-comments" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">我评论过</button>
+            <button onclick="switchTab('likes')" id="tab-likes" class="px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">我赞过</button>
         </div>
     </div>
 
     <div id="my-posts-container" class="space-y-6"></div>
+    <div id="my-comments-container" class="hidden space-y-4"></div>
+    <div id="my-likes-container" class="hidden space-y-4"></div>
 </main>
 
 <script>
-    document.addEventListener('DOMContentLoaded', loadMyPosts);
+    document.addEventListener('DOMContentLoaded', () => { loadNavAvatar(); switchTab('posts'); });
+
+    function loadNavAvatar() {
+        fetch('/api/student/profile').then(r => r.json()).then(res => {
+            if (res.code === 200 && res.data.avatar) {
+                document.getElementById('navAvatar').src = res.data.avatar;
+                document.getElementById('navAvatar').classList.remove('hidden');
+                document.getElementById('navAvatarFallback').classList.add('hidden');
+            }
+        });
+    }
+
+    function switchTab(tab) {
+        ['posts','comments','likes'].forEach(t => {
+            document.getElementById(`tab-${t}`).className = 'px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors';
+            document.getElementById(`my-${t}-container`).classList.add('hidden');
+        });
+        document.getElementById(`tab-${tab}`).className = 'px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white transition-colors';
+        document.getElementById(`my-${tab}-container`).classList.remove('hidden');
+        if (tab === 'posts') loadMyPosts();
+        else if (tab === 'comments') loadMyComments();
+        else loadMyLikes();
+    }
+
+    function loadMyPosts() {
+        fetch('/api/student/my-posts').then(res => res.json()).then(res => {
+            if (res.code === 200) renderMyPosts(res.data);
+            else alert(res.msg);
+        });
+    }
+
+    function loadMyComments() {
+        fetch('/api/student/my-comments').then(r => r.json()).then(res => {
+            const container = document.getElementById('my-comments-container');
+            if (res.code !== 200) { container.innerHTML = `<div class="text-center text-red-500 py-10">${res.msg}</div>`; return; }
+            if (!res.data || res.data.length === 0) {
+                container.innerHTML = '<div class="text-center py-20 bg-white rounded-xl border border-gray-200 text-gray-400">你还没有评论过任何帖子</div>';
+                return;
+            }
+            container.innerHTML = res.data.map(c => `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">评论于：${escapeHtml(c.communityName)}</span>
+                        <span class="text-xs text-gray-400">${formatTime(c.createTime)}</span>
+                    </div>
+                    <p class="text-gray-500 text-xs mb-2 bg-gray-50 p-2 rounded border border-gray-100 line-clamp-2">原帖：${escapeHtml(c.postContent)}</p>
+                    <p class="text-gray-800 text-sm font-medium">我的评论：${escapeHtml(c.content)}</p>
+                </div>`).join('');
+        });
+    }
+
+    function loadMyLikes() {
+        fetch('/api/student/my-likes').then(r => r.json()).then(res => {
+            const container = document.getElementById('my-likes-container');
+            if (res.code !== 200) { container.innerHTML = `<div class="text-center text-red-500 py-10">${res.msg}</div>`; return; }
+            if (!res.data || res.data.length === 0) {
+                container.innerHTML = '<div class="text-center py-20 bg-white rounded-xl border border-gray-200 text-gray-400">你还没有点赞过任何帖子</div>';
+                return;
+            }
+            container.innerHTML = res.data.map(p => `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-medium text-pink-600 bg-pink-50 px-2 py-1 rounded-md">来自：${escapeHtml(p.communityName)} · ${escapeHtml(p.authorName)}</span>
+                        <span class="text-xs text-gray-400">${formatTime(p.createTime)}</span>
+                    </div>
+                    <p class="text-gray-800 text-sm whitespace-pre-wrap line-clamp-3">${escapeHtml(p.content)}</p>
+                    ${p.imageUrl ? `<img src="${p.imageUrl}" class="mt-2 max-h-40 rounded-lg object-cover border border-gray-100">` : ''}
+                </div>`).join('');
+        });
+    }
+
+    function escapeHtml(str) {
+        return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
 
     function loadMyPosts() {
         fetch('/api/student/my-posts').then(res => res.json()).then(res => {
@@ -138,6 +219,13 @@
             else alert(res.msg);
         });
     }
+
+    document.addEventListener('click', e => {
+        const menu = document.getElementById('nav-user-menu');
+        if (menu && !e.target.closest('#nav-user-menu') && !e.target.closest('[onclick*="nav-user-menu"]')) {
+            menu.classList.add('hidden');
+        }
+    });
 </script>
 </body>
 </html>

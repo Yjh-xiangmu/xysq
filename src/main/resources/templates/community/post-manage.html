@@ -38,7 +38,15 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-gray-800">社群帖子列表</h3>
-                <span class="text-xs text-gray-400">可隐藏违规内容或删除帖子</span>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="search-input" placeholder="搜索帖子内容..." class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400 w-48">
+                    <select id="sort-select" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-blue-400">
+                        <option value="time">按时间</option>
+                        <option value="hot">按热度</option>
+                    </select>
+                    <button onclick="loadPosts()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">搜索</button>
+                    <span class="text-xs text-gray-400">可隐藏违规内容或删除帖子</span>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
@@ -50,7 +58,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">状态</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">评论数</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-36">发布时间</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase w-36">操作</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase w-44">操作</th>
                     </tr>
                     </thead>
                     <tbody id="post-list-body" class="bg-white divide-y divide-gray-200">
@@ -66,7 +74,11 @@
     document.addEventListener('DOMContentLoaded', loadPosts);
 
     function loadPosts() {
-        fetch('/api/community/post/list')
+        const keyword = document.getElementById('search-input').value.trim();
+        const sort = document.getElementById('sort-select').value;
+        let url = `/api/community/post/list?sort=${sort}`;
+        if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+        fetch(url)
             .then(r => r.json())
             .then(res => {
                 if (res.code === 200) renderTable(res.data);
@@ -77,6 +89,7 @@
 
     function renderTable(list) {
         const tbody = document.getElementById('post-list-body');
+        window._postCache = list;
         if (!list || list.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-10 text-center text-sm text-gray-400">暂无帖子</td></tr>';
             return;
@@ -101,6 +114,7 @@
                 <td class="px-6 py-4 text-sm text-gray-500">${p.commentCount} 条</td>
                 <td class="px-6 py-4 text-sm text-gray-400 whitespace-nowrap">${timeStr}</td>
                 <td class="px-6 py-4 text-right space-x-2">
+                    <button onclick="viewAuthor(${p.authorId})" class="px-3 py-1 rounded text-xs font-medium bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors">查看资料</button>
                     <button onclick="toggleStatus(${p.id})" class="px-3 py-1 rounded text-xs font-medium transition-colors ${toggleClass}">${toggleLabel}</button>
                     <button onclick="deletePost(${p.id})" class="px-3 py-1 rounded text-xs font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors">删除</button>
                 </td>
@@ -120,6 +134,23 @@
             });
     }
 
+    function viewAuthor(authorId) {
+        if (!authorId) return;
+        document.getElementById('author-modal').classList.remove('hidden');
+        // 从帖子列表里找已有数据（避免额外请求）
+        // 直接从全局缓存拿
+        const p = window._postCache && window._postCache.find(x => x.authorId === authorId);
+        if (p) {
+            const avatar = document.getElementById('am-avatar');
+            avatar.innerHTML = p.authorAvatar ? `<img src="${p.authorAvatar}" class="w-full h-full object-cover">` : (p.authorName||'?').charAt(0);
+            document.getElementById('am-nickname').textContent = p.authorName || '-';
+            document.getElementById('am-studentno').textContent = '学号：' + (p.authorStudentNo || '-');
+            document.getElementById('am-intro').textContent = p.authorIntro || '暂无简介';
+            document.getElementById('am-phone').textContent = p.authorPhone || '未填写';
+            document.getElementById('am-email').textContent = p.authorEmail || '未填写';
+        }
+    }
+
     function deletePost(postId) {
         if (!confirm('删除后不可恢复，确定删除该帖子及所有评论吗？')) return;
         const fd = new URLSearchParams();
@@ -136,5 +167,22 @@
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 </script>
+
+<!-- 查看发帖人资料 Modal -->
+<div id="author-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6 relative">
+        <button onclick="document.getElementById('author-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">×</button>
+        <div class="flex flex-col items-center mt-2">
+            <div id="am-avatar" class="h-16 w-16 rounded-full overflow-hidden bg-gradient-to-tr from-green-400 to-blue-500 flex items-center justify-center text-white text-xl font-bold mb-3 border border-gray-100"></div>
+            <h3 id="am-nickname" class="text-lg font-bold text-gray-800"></h3>
+            <p id="am-studentno" class="text-sm text-gray-500 mt-0.5"></p>
+            <div class="w-full mt-4 space-y-2 text-sm">
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-100"><span class="text-gray-500 text-xs block mb-1">简介</span><span id="am-intro" class="text-gray-700"></span></div>
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-100 flex items-center"><span class="mr-2">📱</span><span id="am-phone"></span></div>
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-100 flex items-center"><span class="mr-2">✉️</span><span id="am-email"></span></div>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>

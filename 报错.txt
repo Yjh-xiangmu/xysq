@@ -1,0 +1,7 @@
+Uncaught SyntaxError: Unexpected token ')'
+2
+member:42 Uncaught ReferenceError: switchTab is not defined
+    at HTMLButtonElement.onclick (member:42:193)
+member:38 Uncaught ReferenceError: switchTab is not defined
+    at HTMLButtonElement.onclick (member:38:168)
+onclick	@	member:38

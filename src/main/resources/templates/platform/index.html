@@ -5,6 +5,8 @@
     <title>平台管理中枢 - 校园兴趣社区</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 </head>
 <body class="bg-gray-100 font-sans leading-normal flex h-screen overflow-hidden">
 
@@ -17,6 +19,7 @@
         <li onclick="showPanel('users')" id="nav-users" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">用户信息管理</li>
         <li onclick="showPanel('content')" id="nav-content" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">内容审核与监管</li>
         <li onclick="showPanel('community')" id="nav-community" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">社群管理</li>
+        <li onclick="showPanel('community-audit')" id="nav-community-audit" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">社群审核</li>
         <li onclick="showPanel('announce')" id="nav-announce" class="px-6 py-3 cursor-pointer hover:bg-gray-800 hover:text-white border-l-4 border-transparent transition-colors">发布全站公告</li>
     </ul>
     <div class="p-4 border-t border-gray-800">
@@ -220,6 +223,29 @@
             </div>
         </div>
 
+        <div id="panel-community-audit" class="hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <h3 class="text-base font-semibold text-gray-800">学生建群申请</h3>
+                    <button onclick="loadPendingCommunities()" class="text-sm text-indigo-500 hover:text-indigo-700 font-medium">刷新</button>
+                </div>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">社群名称</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">简介</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">申请人学号</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">申请时间</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase w-32">操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="community-audit-body" class="bg-white divide-y divide-gray-200">
+                    <tr><td colspan="5" class="py-10 text-center text-sm text-gray-400">正在加载...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <div id="panel-announce" class="hidden">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -229,9 +255,23 @@
                             <label class="block text-sm font-medium text-gray-600 mb-1">公告标题</label>
                             <input type="text" id="annTitle" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="公告标题">
                         </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">优先级</label>
+                                <select id="annPriority" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                                    <option value="0">普通</option>
+                                    <option value="1">重要</option>
+                                    <option value="2">紧急</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">有效期（留空永久有效）</label>
+                                <input type="datetime-local" id="annExpire" class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500">
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-600 mb-1">公告内容</label>
-                            <textarea id="annContent" rows="5" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none" placeholder="公告内容..."></textarea>
+                            <div id="annEditor" style="min-height:120px" class="border border-gray-300 rounded-lg focus-within:border-indigo-500"></div>
                         </div>
                         <div id="ann-msg" class="hidden text-sm px-3 py-2 rounded-lg"></div>
                         <button onclick="publishAnnouncement()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-lg font-medium transition-colors">发 布</button>
@@ -299,13 +339,26 @@
     </div>
 </div>
 
+<!-- 公告详情弹窗 -->
+<div id="ann-detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h3 id="ann-detail-title" class="text-base font-bold text-gray-800"></h3>
+            <button onclick="document.getElementById('ann-detail-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-xl font-bold">×</button>
+        </div>
+        <div class="p-6">
+            <p id="ann-detail-content" class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed"></p>
+        </div>
+    </div>
+</div>
+
 <script>
     let allUsers = [];
     let chartPosts = null;
     let chartMembers = null;
 
-    const panels = ['stats', 'users', 'content', 'community', 'announce'];
-    const titles = { stats: '数据统计与分析', users: '用户信息管理', content: '内容审核与监管', community: '社群管理', announce: '发布全站公告' };
+    const panels = ['stats', 'users', 'content', 'community', 'community-audit', 'announce'];
+    const titles = { stats: '数据统计与分析', users: '用户信息管理', content: '内容审核与监管', community: '社群管理', 'community-audit': '社群审核', announce: '发布全站公告' };
 
     function showPanel(name) {
         panels.forEach(p => {
@@ -320,6 +373,7 @@
         if (name === 'users' && allUsers.length === 0) loadUsers();
         if (name === 'content') loadAllPosts();
         if (name === 'community') { loadAllCommunities(); loadCategoryList(); }
+        if (name === 'community-audit') loadPendingCommunities();
         if (name === 'announce') loadAnnouncements();
     }
 
@@ -595,7 +649,7 @@
             return `<tr class="hover:bg-gray-50">
                 <td class="px-6 py-3 text-xs text-gray-400">#${p.id}</td>
                 <td class="px-6 py-3 text-sm text-gray-600">${escapeHtml(p.communityName)}</td>
-                <td class="px-6 py-3 text-sm font-medium text-gray-800">${escapeHtml(p.authorName)}</td>
+                <td class="px-6 py-3 text-sm font-medium text-indigo-600 cursor-pointer hover:underline" onclick="showStudentById(${p.authorId})">${escapeHtml(p.authorName)}</td>
                 <td class="px-6 py-3 text-sm text-gray-600">${preview} ${imgHtml}</td>
                 <td class="px-6 py-3">${badge}</td>
                 <td class="px-6 py-3 text-xs text-gray-400 whitespace-nowrap">${t}</td>
@@ -617,13 +671,16 @@
             el.innerHTML = res.data.map(a => {
                 const d = new Date(a.createTime);
                 const t = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                return `<div class="px-5 py-4 hover:bg-gray-50 flex items-start justify-between">
+                const priorityMap = {0:'', 1:`<span class="mr-1 px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded text-xs font-bold">重要</span>`, 2:`<span class="mr-1 px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-xs font-bold">紧急</span>`};
+                const priBadge = priorityMap[a.priority] || '';
+                const expireStr = a.expireTime ? `<span class="text-xs text-gray-400">有效至 ${new Date(a.expireTime).toLocaleDateString()}</span>` : '';
+                return `<div class="px-5 py-4 hover:bg-gray-50 flex items-start justify-between cursor-pointer" onclick="showAnnouncementDetail(${a.id}, '${escapeHtml(a.title)}', '${escapeHtml(a.content)}')">
                     <div class="flex-1 min-w-0 mr-3">
-                        <p class="text-sm font-semibold text-gray-800 mb-0.5">${escapeHtml(a.title)}</p>
-                        <p class="text-xs text-gray-500 line-clamp-1">${escapeHtml(a.content)}</p>
-                        <p class="text-xs text-gray-400 mt-1">${t}</p>
+                        <p class="text-sm font-semibold text-gray-800 mb-0.5">${priBadge}${escapeHtml(a.title)}</p>
+                        <p class="text-xs text-gray-500 line-clamp-1">${escapeHtml(a.content.replace(/<[^>]*>/g,''))}</p>
+                        <p class="text-xs text-gray-400 mt-1">${t} ${expireStr}</p>
                     </div>
-                    <button onclick="deleteAnnouncement(${a.id})" class="text-red-500 hover:text-red-700 text-xs font-medium flex-shrink-0">删除</button>
+                    <button onclick="event.stopPropagation();deleteAnnouncement(${a.id})" class="text-red-500 hover:text-red-700 text-xs font-medium flex-shrink-0">删除</button>
                 </div>`;
             }).join('');
         });
@@ -631,12 +688,23 @@
 
     function publishAnnouncement() {
         const title = document.getElementById('annTitle').value.trim();
-        const content = document.getElementById('annContent').value.trim();
-        if (!title || !content) return showAnnMsg('标题和内容不能为空', true);
-        const fd = new URLSearchParams(); fd.append('title', title); fd.append('content', content);
+        const content = window._annQuill ? window._annQuill.root.innerHTML : '';
+        const priority = document.getElementById('annPriority').value;
+        const expireTime = document.getElementById('annExpire').value;
+        const textContent = window._annQuill ? window._annQuill.getText().trim() : '';
+        if (!title || !textContent) return showAnnMsg('标题和内容不能为空', true);
+        const fd = new URLSearchParams();
+        fd.append('title', title); fd.append('content', content); fd.append('priority', priority);
+        if (expireTime) fd.append('expireTime', expireTime);
         fetch('/api/platform/announcement/publish', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
             showAnnMsg(res.msg, res.code !== 200);
-            if (res.code === 200) { document.getElementById('annTitle').value = ''; document.getElementById('annContent').value = ''; loadAnnouncements(); }
+            if (res.code === 200) {
+                document.getElementById('annTitle').value = '';
+                document.getElementById('annExpire').value = '';
+                document.getElementById('annPriority').value = '0';
+                if (window._annQuill) window._annQuill.setContents([]);
+                loadAnnouncements();
+            }
         });
     }
 
@@ -652,9 +720,71 @@
         el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 3000);
     }
 
+    function loadPendingCommunities() {
+        fetch('/api/platform/community/pendingList').then(r => r.json()).then(res => {
+            const tbody = document.getElementById('community-audit-body');
+            if (res.code !== 200 || !res.data || res.data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-sm text-gray-400">暂无待审核申请</td></tr>'; return;
+            }
+            tbody.innerHTML = res.data.map(c => {
+                const d = new Date(c.createTime);
+                const t = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                return `<tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-semibold text-gray-800">${escapeHtml(c.name)}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">${escapeHtml(c.description||'-')}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${escapeHtml(c.creatorStudentNo||'-')}</td>
+                    <td class="px-6 py-4 text-xs text-gray-400">${t}</td>
+                    <td class="px-6 py-4 text-right space-x-2">
+                        <button onclick="auditCommunity(${c.id}, 1)" class="text-white bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded text-xs font-medium">批准</button>
+                        <button onclick="auditCommunity(${c.id}, 2)" class="text-gray-700 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded text-xs font-medium">拒绝</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        });
+    }
+
+    function auditCommunity(communityId, status) {
+        if (!confirm(status === 1 ? '确定批准该建群申请？' : '确定拒绝该建群申请？')) return;
+        const fd = new URLSearchParams(); fd.append('communityId', communityId); fd.append('status', status);
+        fetch('/api/platform/community/audit', { method: 'POST', body: fd }).then(r => r.json()).then(res => {
+            alert(res.msg); if (res.code === 200) loadPendingCommunities();
+        });
+    }
+
+    function showStudentById(studentId) {
+        if (!studentId) return;
+        fetch(`/api/student/user/${studentId}/profile`).then(r => r.json()).then(res => {
+            if (res.code === 200) {
+                const u = res.data;
+                document.getElementById('sm-nickname').textContent = u.nickname || '匿名用户';
+                document.getElementById('sm-studentNo').textContent = '学号：' + (u.studentNo || '-');
+                document.getElementById('sm-intro').textContent = u.intro || '暂未填写简介';
+                document.getElementById('sm-phone').textContent = u.phone || '未留存手机号';
+                document.getElementById('sm-email').textContent = u.email || '未留存邮箱';
+                document.getElementById('sm-login').textContent = '';
+                const avatarImg = document.getElementById('sm-avatar');
+                const avatarFallback = document.getElementById('sm-avatar-fallback');
+                if (u.avatar) { avatarImg.src = u.avatar; avatarImg.classList.remove('hidden'); avatarFallback.classList.add('hidden'); }
+                else { avatarFallback.textContent = (u.nickname||'?').charAt(0); avatarFallback.classList.remove('hidden'); avatarImg.classList.add('hidden'); }
+                document.getElementById('student-modal').classList.remove('hidden');
+            }
+        });
+    }
+
+    function showAnnouncementDetail(id, title, content) {
+        document.getElementById('ann-detail-title').textContent = title;
+        const el = document.getElementById('ann-detail-content');
+        if (content.startsWith('<')) el.innerHTML = content;
+        else { el.textContent = content; }
+        document.getElementById('ann-detail-modal').classList.remove('hidden');
+    }
+
     function escapeHtml(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    document.addEventListener('DOMContentLoaded', loadStats);
+    document.addEventListener('DOMContentLoaded', () => {
+        loadStats();
+        window._annQuill = new Quill('#annEditor', { theme: 'snow', placeholder: '公告内容...' });
+    });
 </script>
 </body>
 </html>
